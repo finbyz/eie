@@ -1,0 +1,18 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+recursive-include eie *.css
+recursive-include eie *.csv
+recursive-include eie *.html
+recursive-include eie *.ico
+recursive-include eie *.js
+recursive-include eie *.json
+recursive-include eie *.md
+recursive-include eie *.png
+recursive-include eie *.py
+recursive-include eie *.svg
+recursive-include eie *.txt
+recursive-exclude eie *.pyc

@@ -1,0 +1,88 @@
+div[data-user-role="System Manager"] {
+	    display: none;
+}
+option[value="System Manager"]{
+	    display: none;
+}
+tr:has ([data-role="System Manager"]){
+	    display: none;
+}
+
+/*  Flat color palette (full) downloaded from
+  *  http://htmlcolorcodes.com/color-charts/
+  */
+ .fc-bg-turquoise { background-color: #48c9b0 !important; color: #000000 !important; }
+ .fc-bg-turquoise.fc-start { border-left: 3px solid #0e6251 !important; }
+ 
+ .fc-bg-green-sea { background-color: #45b39d !important; color: #000000 !important; }
+ .fc-bg-green-sea.fc-start { border-left: 3px solid #0b5345 !important; }
+ 
+ .fc-bg-emerald { background-color: #58d68d !important; color: #000000 !important; }
+ .fc-bg-emerald.fc-start { border-left: 3px solid #186a3b !important; }
+ 
+ .fc-bg-nephritis { background-color: #52be80 !important; color: #000000 !important; }
+ .fc-bg-nephritis.fc-start { border-left: 3px solid #145a32 !important; }
+ 
+ .fc-bg-peter-river { background-color: #5dade2 !important; color: #000000 !important; }
+ .fc-bg-peter-river.fc-start { border-left: 3px solid #1b4f72 !important; }
+ 
+ .fc-bg-belize-hole { background-color: #5499c7 !important; color: #000000 !important; }
+ .fc-bg-belize-hole.fc-start { border-left: 3px solid #154360 !important; }
+ 
+ .fc-bg-amethyst { background-color: #af7ac5 !important; color: #000000 !important; }
+ .fc-bg-amethyst.fc-start { border-left: 3px solid #512e5f !important; }
+ 
+ .fc-bg-wisteria { background-color: #a569bd !important; color: #000000 !important; }
+ .fc-bg-wisteria.fc-start { border-left: 3px solid #4a235a !important; }
+ 
+ .fc-bg-wet-asphalt { background-color: #5d6d7e !important; color: #000000 !important; }
+ .fc-bg-wet-asphalt.fc-start { border-left: 3px solid #1b2631 !important; }
+ 
+ .fc-bg-midnight-blue { background-color: #566573 !important; color: #000000 !important; }
+ .fc-bg-midnight-blue.fc-start { border-left: 3px solid #17202a !important; }
+ 
+ .fc-bg-sunflower { background-color: #f4d03f !important; color: #000000 !important; }
+ .fc-bg-sunflower.fc-start { border-left: 3px solid #7d6608 !important; }
+ 
+ .fc-bg-another-orange { background-color: #f5b041 !important; color: #000000 !important; }
+ .fc-bg-another-orange.fc-start { border-left: 3px solid #7e5109 !important; }
+ 
+ .fc-bg-carrot { background-color: #eb984e !important; color: #000000 !important; }
+ .fc-bg-carrot.fc-start { border-left: 3px solid #784212 !important; }
+ 
+ .fc-bg-pumpkin { background-color: #dc7633 !important; color: #000000 !important; }
+ .fc-bg-pumpkin.fc-start { border-left: 3px solid #6e2c00 !important; }
+ 
+ .fc-bg-alizarin { background-color: #ec7063 !important; color: #000000 !important; }
+ .fc-bg-alizarin.fc-start { border-left: 3px solid #78281f !important; }
+ 
+ .fc-bg-pomegranate { background-color: #cd6155 !important; color: #000000 !important; }
+ .fc-bg-pomegranate.fc-start { border-left: 3px solid #641e16 !important; }
+ 
+ .fc-bg-clouds { background-color: #f0f3f4 !important; color: #000000 !important; }
+ .fc-bg-clouds.fc-start { border-left: 3px solid #7b7d7d !important; }
+ 
+ .fc-bg-silver { background-color: #cacfd2 !important; color: #000000 !important; }
+ .fc-bg-silver.fc-start { border-left: 3px solid #626567 !important; }
+ 
+ .fc-bg-concrete { background-color: #aab7b8 !important; color: #000000 !important; }
+ .fc-bg-concrete.fc-start { border-left: 3px solid #4d5656 !important; }
+ 
+ .fc-bg-asbestos { background-color: #99a3a4 !important; color: #000000 !important; }
+ .fc-bg-asbestos.fc-start { border-left: 3px solid #424949 !important; }
+
+/*.table.table-bordered .warning {
+	color: red;
+}
+*/
+
+/*a[data-role="System Manager"]{
+	display: none;
+}
+*/
+
+
+
+/*.table:nth-of-type(2){
+	border:5px solid red;
+}*/

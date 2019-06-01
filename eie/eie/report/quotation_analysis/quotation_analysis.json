@@ -1,0 +1,33 @@
+{
+ "add_total_row": 0, 
+ "apply_user_permissions": 1, 
+ "creation": "2018-02-28 11:54:50.756762", 
+ "disabled": 1, 
+ "docstatus": 0, 
+ "doctype": "Report", 
+ "idx": 0, 
+ "is_standard": "Yes", 
+ "letter_head": "EIE", 
+ "modified": "2018-06-19 15:33:02.044779", 
+ "modified_by": "Administrator", 
+ "module": "EIE", 
+ "name": "Quotation Analysis", 
+ "owner": "Administrator", 
+ "ref_doctype": "Quotation", 
+ "report_name": "Quotation Analysis", 
+ "report_type": "Script Report", 
+ "roles": [
+  {
+   "role": "Sales User"
+  }, 
+  {
+   "role": "Sales Manager"
+  }, 
+  {
+   "role": "Maintenance Manager"
+  }, 
+  {
+   "role": "Maintenance User"
+  }
+ ]
+}
