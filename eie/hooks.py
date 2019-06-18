@@ -195,6 +195,9 @@ doc_events = {
 	"Customer": {
 		"before_save": "eie.api.customer_before_save",
 	},
+	"Material Request": {
+		"before_save": "eie.api.mr_before_save",
+	},
 	("Sales Invoice", "Purchase Invoice", "Payment Request", "Payment Entry", "Journal Entry", "Material Request", "Purchase Order", "Work Order", "Production Plan", "Stock Entry", "Quotation", "Sales Order", "Delivery Note", "Purchase Receipt", "Packing Slip"): {
 		"before_naming": "eie.api.docs_before_naming",
 	}

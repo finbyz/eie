@@ -74,7 +74,27 @@ def SE_before_save(self,method):
 @frappe.whitelist()
 def customer_before_save(self,method):
 	update_industry(self)
-	
+
+def update_industry(self):
+	if self.lead_name:
+		lead = frappe.get_doc("Lead",self.lead_name)
+		lead.industry = self.industry
+		lead.save()
+		
+	frappe.db.commit()
+
+@frappe.whitelist()
+def mr_before_save(self, method):
+	set_default_supplier(self)
+
+def set_default_supplier(self):
+	for row in self.items:
+		row.default_supplier = cstr(frappe.db.get_value("Item Default", 
+			filters={
+				'parent': row.item_code,
+				'company': self.company,
+			}, fieldname=('default_supplier')))
+
 @frappe.whitelist()
 def update_serial_no(self, method):
 
@@ -937,9 +957,9 @@ def make_quotation(source_name , target_doc=None):
 
 @frappe.whitelist()
 def sales_invoice_mails():
-	# if getdate().weekday() == 6 and getdate().isocalendar()[1] % 2 == 0:
-	if getdate().weekday() == 1 and getdate().isocalendar()[1] % 2 == 1:
-		enqueue(send_sales_invoice_mails, queue='long', timeout=8000, job_name='Payment Reminder Mails')
+	# if getdate().weekday() == 4 and getdate().isocalendar()[1] % 2 == 1:
+	if getdate().weekday() == 6 and getdate().isocalendar()[1] % 2 == 0:
+		enqueue(send_sales_invoice_mails, queue='long', timeout=5000, job_name='Payment Reminder Mails')
 		return "Payment Reminder Mails Send"
 
 @frappe.whitelist()
@@ -1014,19 +1034,28 @@ def send_sales_invoice_mails():
 			order_by='posting_date',
 			fields=["name", "customer", "posting_date", "po_no", "po_date", "rounded_total", "outstanding_amount", "contact_email", "naming_series"])
 
-	# data = frappe.get_list("Sales Invoice", filters={
-	# 	'name': "EP/18-19/5807"},
-	# 	fields=["name", "customer", "posting_date", "po_no", "po_date", "rounded_total", "outstanding_amount", "contact_email", "naming_series"])
+	def get_customers():
+		customers_list = list(set([d.customer for d in data if d.customer]))
+		customers_list.sort()
 
-	customers = list(set([d.customer for d in data if d.customer]))
-	customers.sort()
+		for customer in customers_list:
+			yield customer
+
+	def get_customer_si(customer):
+		for d in data:
+			if d.customer == customer:
+				yield d
+
 	cnt = 0
+	customers = get_customers()
+
 	sender = formataddr(("Collection Department EIEPL", "cd@eieinstruments.com"))
 	for customer in customers:
 		attachments, outstanding, actual_amount, recipients = [], [], [], []
 		table = ''
 
-		customer_si = [d for d in data if d.customer == customer]
+		# customer_si = [d for d in data if d.customer == customer]
+		customer_si = get_customer_si(customer)
 
 		for si in customer_si:
 			show_progress('In Progress', customer, si.name)
@@ -1065,6 +1094,7 @@ def send_sales_invoice_mails():
 			frappe.log_error("Mail Sending Issue", frappe.get_traceback())
 			continue
 
+	show_progress('Success', "All Mails Sent", str(cnt))
 	frappe.db.set_value("Cities", "CITY0001", "total", cnt)
 
 @frappe.whitelist()
@@ -1237,9 +1267,6 @@ def fetch_item_grouo(self):
 	item_group = frappe.db.get_value("Item", self.item_code, "item_group")
 	self.db_set("item_group", item_group)
 
-@frappe.whitelist()
-def cities():
-	pass
 
 @frappe.whitelist()
 def docs_before_naming(self, method):
@@ -1256,12 +1283,3 @@ def docs_before_naming(self, method):
 		fy_years = fy.split("-")
 		fiscal = fy_years[0][2:] + "-" + fy_years[1][2:]
 		self.fiscal = fiscal
-		
-def update_industry(self):
-	if self.lead_name:
-		lead = frappe.get_doc("Lead",self.lead_name)
-		lead.industry = self.industry
-		lead.save()
-		
-	frappe.db.commit()
-		
