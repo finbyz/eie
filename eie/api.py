@@ -1283,3 +1283,48 @@ def docs_before_naming(self, method):
 		fy_years = fy.split("-")
 		fiscal = fy_years[0][2:] + "-" + fy_years[1][2:]
 		self.fiscal = fiscal
+
+# @frappe.whitelist()
+# def delivery_note_patch(doctype, dn_name):
+# 	from erpnext.accounts.general_ledger import delete_gl_entries
+# 	doc = frappe.get_doc(doctype, dn_name)
+# 	delete_gl_entries(voucher_type=doc.doctype, voucher_no=doc.name)
+# 	doc.make_gl_entries()
+
+# 	return "GL Entry Corrected for " + dn_name
+
+# Remove all the below functions on 22nd June 2019
+@frappe.whitelist()
+def update_gl_entries():
+	enqueue(_update_gl_entries, queue='long', timeout=8000, job_name="Updating GL Entries")
+
+def _update_gl_entries():
+	cities = frappe.get_doc("Cities", "CITY0001")
+	
+	gl_patch_list = cities.gl_entry_patch.split("\n")
+
+	cnt = 0
+	for document in gl_patch_list:
+		doctype, docname = document.split(":")
+
+		try:
+			doc = frappe.get_doc(doctype, docname)
+			if doc.docstatus == 1:
+				delete_gl_entries(voucher_type=doc.doctype, voucher_no=doc.name)
+				doc.make_gl_entries(repost_future_gle=False)
+
+				cnt += 1
+				cities.db_set('success', str(cities.success) + document + "\n")
+				cities.db_set('total', str(cnt))
+				frappe.publish_realtime(event="cities_progress", message={'status': str(cnt), 'customer': doctype, 'invoice': docname}, user=frappe.session.user)
+
+		except Exception as e:
+			cities.db_set('success', str(cities.success) + "Error: " + document + "\n")
+			frappe.publish_realtime(event="cities_progress", message={'status': "Error", 'customer': doctype, 'invoice': docname}, user=frappe.session.user)
+
+	# frappe.db.set_value("Cities", "CITY0001", "total", cnt)
+	cities.save()
+
+def delete_gl_entries(voucher_type=None, voucher_no=None):
+	frappe.db.sql("""delete from `tabGL Entry` where voucher_type=%s and voucher_no=%s""",
+		(voucher_type, voucher_no))
