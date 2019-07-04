@@ -9,6 +9,7 @@ frappe.query_reports["Industry Contact"] = {
 			label: __("Industry"),
 			fieldtype: "Link",
 			options: "Industry Type",
+			default: "GENERAL",
 		},
 		{
 			fieldname: 'has_email',
