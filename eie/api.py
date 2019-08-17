@@ -308,6 +308,10 @@ def cancel_sales_order(self):
 	frappe.msgprint(_("Sales Order <b><a href='{url}'>{name}</a></b> has been cancelled!".format(url=url, name=so.name)), title="Sales Order Cancelled", indicator="green")
 
 @frappe.whitelist()
+def dn_before_save(self, method):
+	calculate_combine(self)
+
+@frappe.whitelist()
 def dn_on_submit(self, method):
 	if db.exists("Company", self.customer):
 		if not db.exists("Purchase Order", self.po_no):
@@ -626,12 +630,12 @@ def calculate_combine(self):
 	count = 0
 	for row in self.items:
 		if row.discount_per:
-			disc = flt(row.original_rate) * flt(row.discount_per) / 100.0
-			rate = flt(row.original_rate) - disc
-			row.rate = rate
+			disc = flt(row.original_rate, row.precision('original_rate')) * flt(row.discount_per, row.precision('discount_per')) / 100.0
+			rate = flt(row.original_rate, row.precision('original_rate')) - disc
+			row.rate = flt(rate, row.precision('rate'))
 
 		if not row.price_list_rate:
-			row.price_list_rate = row.rate
+			row.price_list_rate = flt(row.rate, row.precision('price_list_rate'))
 
 		price_list_amount = flt(row.price_list_rate) * row.qty
 		combined_original_amount = flt(row.original_rate) * row.qty
@@ -1176,6 +1180,8 @@ def item_before_rename(self,method, *args, **kwargs):
 
 @frappe.whitelist()
 def pe_on_submit(self, method):
+	validate_outstanding_amount(self)
+	
 	attachments = []
 	recipients = []
 	attachments.append(frappe.attach_print('Payment Entry', self.name, print_format="EIE Payment Entry", print_letterhead=True))
@@ -1231,6 +1237,19 @@ def payment_advice(self, attachments, sender, recipients):
 		cc = ['vasant@eieinstruments.com'],
 		message = message,
 		attachments = attachments)
+
+def validate_outstanding_amount(self):
+	out_amt = 0
+	for row in self.references:
+		if row.reference_doctype in ["Purchase Invoice","Sales Invoice"]:
+			out_amt = frappe.db.get_value(row.reference_doctype,row.reference_name,'outstanding_amount')
+			# if out_amt < 0:
+				# frappe.throw(_("Outstanding amount is become negative for {} in row {}".format(row.reference_name,row.idx)))
+		if row.reference_doctype in ["Sales Order","Purchase Order"]:
+			adv_paid, grand_total = frappe.db.get_value(row.reference_doctype,row.reference_name,['advance_paid','rounded_total'])
+			out_amt = flt(grand_total) - flt(adv_paid)
+		if out_amt < 0:
+			frappe.throw(_("Outstanding amount is become negative for {} in row {}".format(row.reference_name,row.idx)))
 
 @frappe.whitelist()
 def make_meetings(source_name, doctype, ref_doctype, target_doc=None):

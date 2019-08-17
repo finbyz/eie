@@ -180,6 +180,7 @@ doc_events = {
 		"before_save": "eie.api.update_actual_serial_no",
 	},
 	"Delivery Note": {
+		"before_save": "eie.api.dn_before_save",
 		"on_submit": "eie.api.dn_on_submit",
 		"on_cancel": "eie.api.dn_on_cancel",
 	},

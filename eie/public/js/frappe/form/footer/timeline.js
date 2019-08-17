@@ -626,7 +626,8 @@ frappe.ui.form.Timeline = class Timeline {
 
 	insert_comment(comment_type, comment, btn) {
 		var me = this;
-		return frappe.call({
+		if(!this.frm.doc.__islocal){
+			return frappe.call({
 			method: "frappe.desk.form.utils.add_comment",
 			args: {
 				doc:{
@@ -663,6 +664,7 @@ frappe.ui.form.Timeline = class Timeline {
 				}
 			}
 		});
+		}
 
 	}
 
