@@ -10,7 +10,7 @@ from erpnext.utilities.product import get_price
 from frappe.contacts.doctype.address.address import get_address_display, get_default_address, get_company_address
 from frappe.contacts.doctype.contact.contact import get_contact_details, get_default_contact
 from frappe.desk.reportview import get_match_cond, get_filters_cond
-from frappe.utils import nowdate, get_url_to_form, flt, cstr, getdate, get_fullname, now_datetime, parse_val
+from frappe.utils import nowdate, get_url_to_form, flt, cstr, getdate, get_fullname, now_datetime, parse_val, add_years
 from frappe.model.mapper import get_mapped_doc
 from frappe.utils.background_jobs import enqueue
 from email.utils import formataddr
@@ -194,11 +194,14 @@ def create_purchase_invoice(self):
 			return
 
 		pi.append('taxes',{
-				'charge_type': tax.charge_type,
-				'account_head': tax.account_head.replace(old_abbr, new_abbr),
-				'rate': tax.rate,
-				'description': tax.description.replace(old_abbr, '')
-			})
+			'charge_type': tax.charge_type,
+			'row_id': tax.row_id,
+			'account_head': account_head,
+			'description': tax.description.replace(old_abbr, ''),
+			'rate': tax.rate,
+			'tax_amount': tax.tax_amount,
+			'total': tax.total
+		})
 
 	pi.save()
 	self.db_set('purchase_invoice', pi.name)
@@ -206,7 +209,6 @@ def create_purchase_invoice(self):
 	db.commit()
 
 	url = get_url_to_form("Purchase Invoice", pi.name)
-
 	frappe.msgprint(_("Purchase Invoice <b><a href='{url}'>{name}</a></b> has been created successfully!".format(url=url, name=pi.name)), title="Purchase Invoice Created", indicator="green")
 
 def cancel_purchase_invoice(self):
@@ -271,22 +273,22 @@ def create_sales_order(self):
 			return
 
 		so.append('taxes',{
-				'charge_type': tax.charge_type,
-				'account_head': account_head,
-				'rate': tax.rate,
-				'description': tax.description.replace(old_abbr, '')
-			})
+			'charge_type': tax.charge_type,
+			'account_head': account_head,
+			'description': tax.description.replace(old_abbr, ''),
+			'rate': tax.rate,
+		})
 
 	so.payment_terms_template = self.payment_terms_template
 
 	for payment in self.payment_schedule:
 		so.append('payment_schedule',{
-				'payment_term': payment.payment_term,
-				'description': payment.description,
-				'due_date': payment.due_date,
-				'invoice_portion': payment.invoice_portion,
-				'payment_amount': payment.payment_amount,
-			})
+			'payment_term': payment.payment_term,
+			'description': payment.description,
+			'due_date': payment.due_date,
+			'invoice_portion': payment.invoice_portion,
+			'payment_amount': payment.payment_amount,
+		})
 
 	so.tc_name = 'Sales Order Conditions'
 	so.save()
@@ -295,7 +297,6 @@ def create_sales_order(self):
 	db.commit()
 
 	url = get_url_to_form("Sales Order", so.name)
-
 	frappe.msgprint(_("Sales Order <b><a href='{url}'>{name}</a></b> has been created successfully!".format(url=url, name=so.name)), title="Sales Order Created", indicator="green")
 		
 def cancel_sales_order(self):
@@ -373,18 +374,19 @@ def create_purchase_receipt(self):
 			return
 
 		pr.append('taxes',{
-				'charge_type': tax.charge_type,
-				'account_head': account_head,
-				'rate': tax.rate,
-				'description': tax.description.replace(old_abbr, ''),
-				'cost_center': cost_center
-			})
+			'charge_type': tax.charge_type,
+			'row_id': tax.row_id,
+			'account_head': account_head,
+			'description': tax.description.replace(old_abbr, ''),
+			'rate': tax.rate,
+			'tax_amount': tax.tax_amount,
+			'total': tax.total,
+			'cost_center': cost_center,
+		})
 
 	pr.tc_name = 'Purchase Terms'
 	try:
 		pr.save()
-		# time.sleep(1)
-		# pr.submit()
 	except Exception as e:
 		frappe.throw(_(e))
 	else:
@@ -392,8 +394,6 @@ def create_purchase_receipt(self):
 		db.commit()
 
 	url = get_url_to_form("Purchase Receipt", pr.name)
-
-	# frappe.msgprint(_("Purchase Receipt <b><a href='{url}'>{name}</a></b> has been created successfully!".format(url=url, name=pr.name)), title="Purchase Receipt Created", indicator="green")
 	frappe.msgprint(_("Purchase Receipt <b><a href='{url}'>{name}</a></b> has been created successfully! Please submit the Purchase Recipient.".format(url=url, name=pr.name)), title="Purchase Receipt Created", indicator="green")
 
 def cancel_purchase_receipt(self):
@@ -960,6 +960,11 @@ def make_quotation(source_name , target_doc=None):
 	return doclist
 
 @frappe.whitelist()
+def emd_sd_mail():
+	enqueue(send_emd_reminder, queue='long', timeout=5000, job_name='EMD Mails')
+	enqueue(send_sd_reminder, queue='long', timeout=5000, job_name='SD Mails')
+
+@frappe.whitelist()
 def sales_invoice_mails():
 	# if getdate().weekday() == 4 and getdate().isocalendar()[1] % 2 == 1:
 	if getdate().weekday() == 6 and getdate().isocalendar()[1] % 2 == 0:
@@ -1022,7 +1027,7 @@ def send_sales_invoice_mails():
 				We request you to look into the matter and release the payment/s without Further delay. <br><br>
 				If you need any clarifications for any of above invoice/s, please reach out to our Accounts Receivable Team by sending email to cd@eieinstruments.com or call Mr. Mahesh Parmar (079-66040638) or Mr. Hardik Suthar (07966040641).<br><br>
 				We will appreciate your immediate response in this regard.<br><br>
-				<span style="background-color: rgb(255, 255, 0);">Please ignore this mail if payment is already done.<br><br>
+				<span style="background-color: rgb(255, 255, 0);">If payment already made from your end, kindly excuse us for this mail with the details of payments made to enable us to reconcile and credit your account. In case of online payment, sometimes, it is difficult to reconcile the name of the Payer and credit the relevant account.<br><br>
 				If invoice is not due please reconcile the same and arrange to release on due date. </span><br><br>
 				Thanking you in anticipation.<br><br>For, EIE INSTRUMENTS PVT. LTD.<br>( Accountant )""".format(actual_amt, outstanding_amt)
 
@@ -1085,12 +1090,14 @@ def send_sales_invoice_mails():
 		
 		try:
 			# frappe.sendmail(recipients='harshdeep.mehta@finbyz.tech',
-			frappe.sendmail(recipients=recipients,
+			frappe.sendmail(
+				recipients=recipients,
 				cc = 'cd@eieinstruments.com',
 				subject = 'Overdue Invoices: ' + customer,
 				sender = sender,
 				message = message,
-				attachments = attachments)
+				attachments = attachments
+			)
 			
 			cnt += 1
 			show_progress('Mail Sent', customer, "All")
@@ -1191,15 +1198,21 @@ def pe_on_submit(self, method):
 
 	if self.payment_type == 'Receive':
 		payment_receipt_alert(self, attachments, sender, recipients)
-	# elif self.payment_type == 'Pay':
-	# 	if self.mode_of_payment == 'Cheque':
-	# 		payment_advice_cheque(self, attachments, sender, recipients)
-	# 	else:
-	# 		payment_advice(self, attachments, sender, recipients)
 
 def payment_receipt_alert(self, attachments, sender, recipients):
-	message = """<p> Dear Sir, </p> <p> Thank you very much for payment of {}.<p> Please have payment receipt as attached.</p> <p> For any queries, Please get in touch with our contact available with you. </p> <p>
-		Thanks & Regards, <strong> <br/> {} <br/> </strong><p>Contact: 7966040646</p>  <strong>{}</strong> </p>""".format(self.remarks.replace('\n', "<br>"), get_fullname(self.modified_by) or "", self.company)
+	message = """<p> Dear Sir, </p> 
+		<p> Thank you very much for payment of {}.
+		<p> Please have payment receipt as attached.</p> 
+		<p> For any queries, Please get in touch with our contact available with you. </p> 
+		<p>Thanks & Regards, <strong>
+		<br/> {} <br/> </strong>
+		<p>Contact: 7966040646</p>
+		<p>Quation Department- 079-66211201 – info@eieinstruments.com</p> 
+		<p>Service Department- 079-66040629 – service.eiepl@gmail.com</p> 
+		<p>Dispatch Department – 079-66040612- Sonali.eiepl@gmail.com</p> 
+		<p>Logistic Department – 7600001423 – logistic@eieinstruments.com</p> 
+		<p>Biling Department – 079-66040685 –  billing@eieinstruments.com</p> 
+		<strong>{}</strong> </p>""".format(self.remarks.replace('\n', "<br>"), get_fullname(self.modified_by) or "", self.company)
 
 	frappe.sendmail(recipients=recipients,
 		subject = 'Payment Receipt: ' + self.party + ' - ' + self.name,
@@ -1207,36 +1220,6 @@ def payment_receipt_alert(self, attachments, sender, recipients):
 		message = message,
 		attachments = attachments)
 
-def payment_advice_cheque(self, attachments, sender, recipients):
-	message = """<p>Dear Sir,</p><br><p>Your Cheque is ready against your outstanding %s – Please Pick-up your cheque tomorrow between 02:00 PM To 06:00 PM</p>
-	<br><p>Address :</br>Eie Instruments Pvt Ltd</br>B 14 15 16 Zaveri Industrial Estate,</br>
-	Singarwa – Kathwada Road,</br> Kathwada, Ahmedabad – 382430</br>Ph no: 079-66040660</p>	"""% (self.get_formatted('paid_amount') or '')
-
-	frappe.sendmail(recipients=recipients,
-		subject = 'Payment Advice: ' + self.party + ' - ' + self.name,
-		sender = sender,
-		cc = ['vasant@eieinstruments.com'],
-		message = message,
-		attachments = attachments)
-
-def payment_advice(self, attachments, sender, recipients):
-	message = """<p>Dear Sir/Madam,</p><p>This is to advise you that an amount Rs. {} is being credited by {} to your  Bank Account.</p><p>We have deposited cheque of {}.<p>
-	Please have payment receipt as attached.</p><p>
-	If you have any Queries on the payment , Please do not hesitate to Contact.
-	And if any Bills are Still Outstanding Please mail us :
-	<a href="mailto:vasant@eieinstruments.com" target="_blank">
-		vasant@eieinstruments.com</a></p><p>
-	If you not receive the amount in couple of the days, Please Inform Us
-	immediately then we will not responsible for any matter.
-	</p><p>Thanks &amp; Regards,<strong><br/>{}	<br/></strong>
-	<strong>{}</strong></p>""".format(self.get_formatted('paid_amount'), self.mode_of_payment, self.remarks.replace('\n', "<br>"), get_fullname(self.modified_by) or "", self.company)
-	
-	frappe.sendmail(recipients=recipients,
-		subject = 'Payment Advice: ' + self.party + ' - ' + self.name,
-		sender = sender,
-		cc = ['vasant@eieinstruments.com'],
-		message = message,
-		attachments = attachments)
 
 def validate_outstanding_amount(self):
 	out_amt = 0
@@ -1303,47 +1286,390 @@ def docs_before_naming(self, method):
 		fiscal = fy_years[0][2:] + "-" + fy_years[1][2:]
 		self.fiscal = fiscal
 
-# @frappe.whitelist()
-# def delivery_note_patch(doctype, dn_name):
-# 	from erpnext.accounts.general_ledger import delete_gl_entries
-# 	doc = frappe.get_doc(doctype, dn_name)
-# 	delete_gl_entries(voucher_type=doc.doctype, voucher_no=doc.name)
-# 	doc.make_gl_entries()
 
-# 	return "GL Entry Corrected for " + dn_name
-
-# Remove all the below functions on 22nd June 2019
 @frappe.whitelist()
-def update_gl_entries():
-	enqueue(_update_gl_entries, queue='long', timeout=8000, job_name="Updating GL Entries")
+def update_grand_total(docname):
+	doc = frappe.get_doc("BOM",docname)
+	doc.db_set("grand_total_cost",flt(doc.total_cost + doc.man_power_cost + doc.ancillary_cost + doc.powder_coating + doc.buffing_cost))
+	frappe.db.commit()
 
-def _update_gl_entries():
-	cities = frappe.get_doc("Cities", "CITY0001")
+
+@frappe.whitelist()
+def calibration_mails_daily():
+	for days in [335, 350, 362]:
+		enqueue(send_calibration_mail, queue='long', timeout=5000, job_name='Calibration Reminder Mails', days=days)
 	
-	gl_patch_list = cities.gl_entry_patch.split("\n")
+	return "Calibration Reminder Mails Send!"
 
-	cnt = 0
-	for document in gl_patch_list:
-		doctype, docname = document.split(":")
+def send_calibration_mail(days):
+
+	def header(person_name, company_name, contact_number, date):
+		return """<p> <strong> Kind Attention: {person_name} ({company_name}) ({contact_number}) </strong> </p>
+			<p> <strong> Dear Sir / Madam, </strong> </p>
+			<p> <strong> Kindly note that the following item(s), of yours, is/are due for Calibration in {date}. </strong> </p>
+			<p> <strong> Can you please inform us when you are planning to Calibrate this instruments so that we can schedule our calibration activities at our end. </strong> </p>
+			<p> <strong> This reminder mail is sending just to plan at our end so that we can serve our quality services in time. </strong> </p>
+			<p> <strong> Please feel free to contact us for any Clarifications. </strong> </p>
+			<table border="1" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse">
+			<tbody> <tr>
+				<td width="10%">
+					<p align="center"> Sr No: </p>
+				</td>
+				<td width="70%">
+					<p align="center"> Instruments Name </p>
+				</td>
+				<td width="20%">
+					<p align="center"> Qty </p>
+				</td>
+			</tr>""".format(
+				person_name = person_name,
+				company_name = company_name,
+				contact_number = contact_number,
+				date = date)
+
+	def table_content(sr_no, instrument_name, qty):
+		return """<tr>
+			<td width="10%">
+				<p align="center"> {sr_no} </p>
+			</td>
+			<td width="70%">
+				<p align="center"> {instrument_name} </p>
+			</td>
+			<td width="20%">
+				<p align="center"> {qty} </p>
+			</td> </tr>""".format(
+				sr_no = sr_no,
+				instrument_name = instrument_name,
+				qty = flt(qty))
+
+	def footer():
+		return """</tbody> </table>
+			<p> <strong> Thanks & Regards, </strong> </p>
+			<p> <strong> EIE Instruments Pvt. Ltd. </strong> </p>
+			<p style="font-size: 12px;"> B-14/15 Zaveri Industrial Estate, Opp. Shyamvilla Bunglows,
+			<br>Kathwada-Singarva Road, Kathwada, Ahmedabad-382430.
+			<br>www.eieinstruments.com | csc.eiepl@gmail.com, service.eiepl@gmail.com
+			<br>+91 79 66040680, +91 79 66040660 </p>"""
+
+	data = frappe.db.sql("""
+		SELECT si.name, si.posting_date, si.customer, si.contact_display, si.contact_mobile, si.contact_email,
+			si_item.item_code, si_item.item_name, si_item.qty
+		FROM
+			`tabSales Invoice` as si LEFT JOIN `tabSales Invoice Item` as si_item on (si_item.parent = si.name)
+		WHERE
+			si.docstatus = 1 
+			and si.dont_send_calibration_reminder = 0 
+			and si_item.item_group in ('CALIBRATION - NON NABL', 'CALIBRATION - NABL')
+			and DATE_SUB(CURDATE(), interval {} day) = si.posting_date """.format(days), as_dict = True)
+
+	si_dict = dict()
+
+	for row in data:
+		key = (row.name, row.contact_display, row.customer, row.contact_mobile, row.contact_email, row.posting_date)
+		si_dict.setdefault(key, [])
+		si_dict[key].append(row)
+
+	sender = formataddr(("Calibration Dept - EIE Instruments Pvt Ltd", "csc.eiepl@gmail.com"))
+
+	for (invoice_no, person_name, company_name, contact_mobile, contact_email, posting_date), items in si_dict.items():
+		table = ""
+
+		recipients = [contact_email]
+		date = add_years(posting_date, 1).strftime("%d-%b-%Y")
+
+		for sr_no, row in enumerate(items, start = 1):
+			table += table_content(sr_no, row.item_name, row.qty)
+
+		message = header(person_name, company_name, contact_mobile, date) + table + footer()
+		# message += "<br>Recipients: " + ','.join(recipients)
+		message += "<br>Invoice No: " + invoice_no
 
 		try:
-			doc = frappe.get_doc(doctype, docname)
-			if doc.docstatus == 1:
-				delete_gl_entries(voucher_type=doc.doctype, voucher_no=doc.name)
-				doc.make_gl_entries(repost_future_gle=False)
+			# frappe.sendmail(recipients=['harshdeep.mehta@finbyz.tech', 'it@eieinstruments.com'],
+			frappe.sendmail(recipients=recipients,
+				subject = 'REMINDER FOR CALIBRATION ACTIVITY',
+				sender = sender,
+				message = message)
+		except:
+			frappe.publish_realtime(event="cities_progress", message={'status': "FAIL", 'customer': '', 'invoice': ''}, user=frappe.session.user)
 
-				cnt += 1
-				cities.db_set('success', str(cities.success) + document + "\n")
-				cities.db_set('total', str(cnt))
-				frappe.publish_realtime(event="cities_progress", message={'status': str(cnt), 'customer': doctype, 'invoice': docname}, user=frappe.session.user)
+def si_validate(self,method):
+	check_item_on_validate(self)
 
-		except Exception as e:
-			cities.db_set('success', str(cities.success) + "Error: " + document + "\n")
-			frappe.publish_realtime(event="cities_progress", message={'status': "Error", 'customer': doctype, 'invoice': docname}, user=frappe.session.user)
+def so_validate(self,method):
+	check_item_on_validate(self)
 
-	# frappe.db.set_value("Cities", "CITY0001", "total", cnt)
-	cities.save()
+def dn_validate(self,method):
+	check_item_on_validate(self)
 
-def delete_gl_entries(voucher_type=None, voucher_no=None):
-	frappe.db.sql("""delete from `tabGL Entry` where voucher_type=%s and voucher_no=%s""",
-		(voucher_type, voucher_no))
+def qt_validate(self,method):
+	check_item_on_validate(self)
+
+def check_item_on_validate(self):
+	if self.company == "EIE Instruments Pvt. Ltd.":
+		for row in self.items:
+			checked = frappe.db.get_value('Item', row.item_code, 'dont_allow_sales_in_eie')
+			if checked == 1:
+				frappe.throw(_("Sales is not allowed in EIE for {0}".format(row.item_code)))
+
+@frappe.whitelist()
+def send_emd_reminder():
+	from frappe.utils import fmt_money
+	
+	def header(customer, address_display, contact_display):
+		message = """
+		<center><strong>E.M.D. Reminder</strong></center>
+		<strong>{}</strong><br><br>
+		{}
+		<br><br>
+		<strong>Attn.: {}</strong><br><br>
+		<strong>Sub.: Refund of E.M.D.</strong><br><br>
+
+		Dear Sir<br><br>
+		May we invite your kind immediate attention to our following E.M.D./s which may please be refunded in  case the tender/s have been finalised.<br><br>
+
+		<div>
+			<table border="1" cellspacing="0" cellpadding="0" width="100%" align="center">
+				<thead>
+					<tr>
+						<th align="left" width="20%">Tender No</th>
+						<th align="left" width="15%">Due Date</th>
+						<th align="left" width="10%">EMD Amount</th>
+						<th align="left" width="8%">Pay Mode</th>
+						<th align="left" width="8%">Inst. No</th>
+						<th align="left" width="8%">Bank Name</th>
+						<th align="left" width="31%">Tender Name</th>
+					</tr>
+				</thead>
+				<tbody>
+		""".format(customer or '', address_display or '', contact_display or '')
+		return message
+
+	def table_content(tender_no, due_date, amount, payment_mode, reference_num, bank_account, tender_name):
+		
+		message = """
+					<tr>
+						<td>{}</td>
+						<td>{}</td>
+						<td align="right">{}</td>
+						<td>{}</td>
+						<td>{}</td>
+						<td>{}</td>
+						<td>{}</td>
+					</tr>
+		""".format(tender_no or '-', due_date or '', amount, payment_mode or '', reference_num or '', bank_account or '', tender_name or '')
+		return message
+	def footer(actual_amount, company):
+		message = """
+				</tbody>
+			</table><br>
+			<center><strong>TOTAL </strong> : {}</center><br><br>
+
+			We request for your immediate actions in this regards. <br><br>
+			If you need any clarifications for any of above invoice/s, please reach out to our Accounts Receivable Team by sending email to tender@eieinstruments.com Or Call Ms. Sadhna Patel (079-66211215) or call Mr. Mahesh Parmar (079-66040638) . <br><br>
+			If refund already made from your end, kindly excuse us for this mail with the details of payments made to enable us to reconcile and credit your account. In case of online payment, sometimes, it is difficult to reconcile the name of the Payer and credit the relevant account. <br><br><br>
+			Thanking you in anticipation. <br><br><br>
+			<strong>For, {}</strong><br>
+			( Accountant )
+		</div>
+
+		""".format(sum(actual_amount), company)
+		return message
+
+	data = frappe.get_list("EMD", filters={
+		'due_date': ("<=", frappe.utils.nowdate()),
+		'returned': 1,
+		'deposit_account': ["like","%EMD Receivable%"],
+		'docstatus': 1
+		},
+		order_by='posting_date',
+		fields=["customer", "address_display", "contact_display", "tender_no", "due_date", "amount", "payment_mode", "reference_num", "bank_account", "tender_name", "company"]
+	)
+
+	def get_customers():
+		customers_list = list(set([d.customer for d in data if d.customer]))
+		customers_list.sort()
+
+		for customer in customers_list:
+			yield customer
+
+	def get_customer_emd(customer):
+		for d in data:
+			if d.customer == customer:
+				yield d
+	
+	cnt = 0
+	customers = get_customers()
+
+	sender = formataddr(("Tender", "tender@eieinstruments.com"))
+	for customer in customers:
+		attachments, outstanding, actual_amount, recipients = [], [], [], []
+		table = ''
+
+		# customer_si = [d for d in data if d.customer == customer]
+		# get_customer_emd = get_customer_emd(customer)
+
+		for si in get_customer_emd(customer):
+			# name = "EID Outstanding"
+			
+			table += table_content(si.tender_no, si.due_date, si.amount, si.payment_mode, si.reference_num, si.bank_account, si.tender_name)
+			address_display = si.address_display
+			company = si.company
+			contact_display = si.contact_display
+			# outstanding.append(si.amount)
+			actual_amount.append(si.amount or 0.0)
+
+			# if bool(si.contact_email) and si.contact_email not in recipients:
+			# 	recipients.append(si.contact_email)
+
+		message = header(customer, address_display, contact_display) + '' + table + '' + footer(actual_amount, company)
+		# message += "<br><br>Recipients: " + ','.join(recipients)
+		
+		try:
+			print(customer)
+			frappe.sendmail(
+				recipients='it@eieinstruments.com',
+				cc = 'anuj.sanklecha@finbyz.tech',
+				subject = 'REFUND / RELEASE OF SECURITY DEPOSIT',
+				sender = sender,
+				message = message,
+				attachments = attachments
+			)
+			
+			cnt += 1
+		except:
+			frappe.log_error("Mail Sending Issue", frappe.get_traceback())
+			continue
+	pass
+
+
+@frappe.whitelist()
+def send_sd_reminder():
+	from frappe.utils import fmt_money
+	
+	def header(customer, address_display, contact_display):
+		message = """
+		<center><strong>S.D. Reminder</strong></center><br>
+		<strong>{}</strong><br><br>
+		{}
+		<br><br>
+		<strong>Attn.: {}</strong><br><br>
+		<strong>Sub.: Refund of S.D.</strong><br><br>
+
+		Dear Sir<br><br>
+		We wish to invite your attention to our following Security Deposits,  which may please be refunded to us since we have already executed the contract to your satisfaction.
+		<br><br>
+		<div>
+			<table border="1" cellspacing="0" cellpadding="0" width="100%" align="center">
+				<thead>
+					<tr>
+						<th align="left" width="25%">P.O No</th>
+						<th align="left" width="15%">Ref Date</th>
+						<th align="left" width="15%">Due Date</th>
+						<th align="left" width="10%">S.D. Amount</th>
+						<th align="left" width="15%">Payee Bank</th>
+						<th align="left" width="10%">Instrument No</th>
+						<th align="left" width="10%">O/S Amount</th>
+					</tr>
+				</thead>
+				<tbody>
+		""".format(customer or '', address_display or '', contact_display or '')
+		return message
+
+	def table_content(tender_no, ref_date, due_date, amount, payment_mode, reference_num, bank_account):
+		
+		message = """
+					<tr>
+						<td>{}</td>
+						<td>{}</td>
+						<td>{}</td>
+						<td align="right">{}</td>
+						<td>{}</td>
+						<td>{}</td>
+						<td align="right">{}</td>
+					</tr>
+		""".format(tender_no or '', ref_date or '',due_date or '', amount or  '', bank_account or '', reference_num or  '', amount or  '')
+		return message
+	def footer(actual_amount, company):
+		message = """
+				</tbody>
+			</table><br>
+			<center><strong>TOTAL </strong> : {}</center><br><br>
+
+			We request for your immediate actions in this regards. <br><br>
+			If you need any clarifications for any of above invoice/s, please reach out to our Accounts Receivable Team by sending email to tender@eieinstruments.com Or Call Ms. Sadhna Patel (079-66211215) or call Mr. Mahesh Parmar (079-66040638).<br><br>
+			If refund already made from your end, kindly excuse us for this mail with the details of payments made to enable us to reconcile and credit your account. In case of online payment, sometimes, it is difficult to reconcile the name of the Payer and credit the relevant account. <br><br><br>
+			Thanking you in anticipation. <br><br><br>
+			<strong>For, {}</strong><br>
+			( Accountant )
+		</div>
+
+		""".format(sum(actual_amount), company)
+		return message
+
+	data = frappe.get_list("EMD", filters={
+		'due_date': ("<=", frappe.utils.nowdate()),
+		'returned': 0,
+		'deposit_account': ["like","%SD Receivable%"],
+		'docstatus': 1
+		},
+		order_by='posting_date',
+		fields=["customer", "address_display", "address_display", "tender_no", "due_date", "amount", "payment_mode", "reference_num", "bank_account", "tender_name", "company", "posting_date", "reference_date"]
+	)
+
+	def get_customers():
+		customers_list = list(set([d.customer for d in data if d.customer]))
+		customers_list.sort()
+
+		for customer in customers_list:
+			yield customer
+
+	def get_customer_emd(customer):
+		for d in data:
+			if d.customer == customer:
+				yield d
+	
+	cnt = 0
+	customers = get_customers()
+
+	sender = formataddr(("Tender", "tender@eieinstruments.com"))
+	for customer in customers:
+		attachments, outstanding, actual_amount, recipients = [], [], [], []
+		table = ''
+
+		# customer_si = [d for d in data if d.customer == customer]
+		# get_customer_emd = get_customer_emd(customer)
+
+		for si in get_customer_emd(customer):
+			# name = "EID Outstanding"
+			
+			table += table_content(si.tender_no, si.reference_date, si.due_date, si.amount, si.payment_mode, si.reference_num, si.bank_account)
+
+			# outstanding.append(si.amount)
+			actual_amount.append(si.amount or 0.0)
+			company = si.company
+			contact_display = si.contact_display
+			address_display = si.address_display
+			# if bool(si.contact_email) and si.contact_email not in recipients:
+			# 	recipients.append(si.contact_email)
+
+		message = header(customer, address_display, contact_display) + '' + table + '' + footer(actual_amount, company)
+		# message += "<br><br>Recipients: " + ','.join(recipients)
+		
+		try:
+			# frappe.sendmail(recipients='harshdeep.mehta@finbyz.tech',
+			frappe.sendmail(
+				recipients='it@eieinstruments.com',
+				cc = 'anuj.sanklecha@finbyz.tech',
+				subject = 'REFUND / RELEASE OF SECURITY DEPOSIT',
+				sender = sender,
+				message = message,
+				attachments = attachments,
+				now = True
+			)
+			
+			cnt += 1
+		except:
+			frappe.log_error("Mail Sending Issue", frappe.get_traceback())
+			continue
+	pass

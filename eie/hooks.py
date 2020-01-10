@@ -98,6 +98,7 @@ page_js = {"permission-manager" : "public/js/eie.min.js"}
 #	}
 # }
 
+
 # Scheduled Tasks
 # ---------------
 
@@ -144,8 +145,11 @@ override_whitelisted_methods = {
 	"frappe.email.inbox.create_email_flag_queue": "eie.inbox.create_email_flag_queue",
 }
 
+
+
 doc_events = {
 	"Sales Invoice": {
+		"validate": "eie.api.si_validate",
 		"before_save": "eie.api.si_before_save",
 		"on_submit": "eie.api.si_on_submit",
 		"on_cancel": "eie.api.si_on_cancel",
@@ -170,6 +174,7 @@ doc_events = {
 		"before_save": "eie.api.ps_before_save",
 	},
 	"Sales Order": {
+		"validate": "eie.api.so_validate",
 		"before_save": "eie.api.so_before_save",
 	},
 	"Stock Entry": {
@@ -180,6 +185,7 @@ doc_events = {
 		"before_save": "eie.api.update_actual_serial_no",
 	},
 	"Delivery Note": {
+		"validate": "eie.api.dn_validate",
 		"before_save": "eie.api.dn_before_save",
 		"on_submit": "eie.api.dn_on_submit",
 		"on_cancel": "eie.api.dn_on_cancel",
@@ -191,6 +197,7 @@ doc_events = {
 		"before_save": "eie.api.IP_before_save",
 	},
 	"Quotation": {
+		"validate": "eie.api.qt_validate",
 		"before_save": "eie.api.qt_before_save",
 	},
 	"Customer": {
@@ -208,6 +215,7 @@ scheduler_events = {
 	"daily": [
 		"eie.api.create_purchase_order_daily",
 		"eie.api.sales_invoice_mails",
+		"eie.api.calibration_mails_daily",
 	],
 	"all": [
 		"eie.inbox.change_email_queue_status",
