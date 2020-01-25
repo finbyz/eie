@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 import frappe
 import datetime
 from frappe import _
-from frappe.utils import getdate, nowdate, date_diff
+from frappe.utils import getdate, nowdate, date_diff, get_fullname
 from frappe.contacts.doctype.contact.contact import get_contact_details, get_default_contact
 
 def execute(filters=None):
@@ -36,7 +36,7 @@ def get_columns():
 def get_data(filters):
 
 	where_clause = ''
-	where_clause += " and co.communication_date between '%s 00:00:00' and '%s 23:59:59' " % (filters.from_date, filters.to_date)
+	where_clause += " and co.creation between '%s 00:00:00' and '%s 23:59:59' " % (filters.from_date, filters.to_date)
 
 	if not filters.doctype:
 		ref_doctypes = ["'Lead'", "'Customer'", "'Quotation'", "'Opportunity'", "'Sales Order'", "'Sales Invoice'", "'Delivery Note'"]
@@ -46,18 +46,18 @@ def get_data(filters):
 	where_clause += " and co.reference_doctype in (%s)" % ",".join(ref_doctypes)
 
 	if filters.user:
-		where_clause += " and co.user = '%s' " % filters.user
+		where_clause += " and co.owner = '%s' " % filters.user
 
 	data = frappe.db.sql("""
 		SELECT
-			co.reference_doctype as "Ref DocType", co.reference_name as "Ref DocName", co.user as "User" , co.communication_date as "Date", co.sender_full_name as "Caller", co.content as "Comment"
+			co.reference_doctype as "Ref DocType", co.reference_name as "Ref DocName", co.owner as "User" , co.creation as "Date", co.content as "Comment", co.comment_email
 		FROM
-			`tabCommunication` as co
+			`tabComment` as co
 		WHERE
 			co.comment_type="Comment"
 			%s
 		ORDER BY
-			co.communication_date DESC"""%where_clause, as_dict=1)
+			co.creation DESC"""%where_clause, as_dict=1)
 
 			
 	for row in data:
@@ -65,6 +65,7 @@ def get_data(filters):
 		row["Mobile"] = get_contact(row, filters)
 		row["Organization"] = get_organization(row, filters)
 		row["Person"] = get_contact_display(row, filters)
+		row["Caller"] = get_fullname(row['comment_email'])
 	
 	return data
 	

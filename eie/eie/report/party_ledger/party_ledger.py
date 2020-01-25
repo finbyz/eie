@@ -1,5 +1,6 @@
-# Copyright (c) 2015, Frappe Technologies Pvt. Ltd. and Contributors
-# License: GNU General Public License v3. See license.txt
+# Copyright (c) 2013, FinByz Tech Pvt Ltd and contributors
+# For license information, please see license.txt
+
 
 from __future__ import unicode_literals
 import frappe, erpnext
@@ -10,6 +11,7 @@ from frappe import _, _dict
 from erpnext.accounts.utils import get_account_currency
 from erpnext.accounts.report.financial_statements import get_cost_centers_with_children
 from six import iteritems
+from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import get_accounting_dimensions
 from collections import OrderedDict
 
 def execute(filters=None):
@@ -26,8 +28,7 @@ def execute(filters=None):
 		account_details.setdefault(acc.name, acc)
 
 	if filters.get('party'):
-		parties = cstr(filters.get("party")).strip()
-		filters.party = [d.strip() for d in parties.split(',') if d]
+		filters.party = frappe.parse_json(filters.get("party"))
 
 	validate_filters(filters, account_details)
 
@@ -61,12 +62,10 @@ def validate_filters(filters, account_details):
 		frappe.throw(_("From Date must be before To Date"))
 
 	if filters.get('project'):
-		projects = cstr(filters.get("project")).strip()
-		filters.project = [d.strip() for d in projects.split(',') if d]
+		filters.project = frappe.parse_json(filters.get('project'))
 
 	if filters.get('cost_center'):
-		cost_centers = cstr(filters.get("cost_center")).strip()
-		filters.cost_center = [d.strip() for d in cost_centers.split(',') if d]
+		filters.cost_center = frappe.parse_json(filters.get('cost_center'))
 
 
 def validate_party(filters):
@@ -109,11 +108,10 @@ def set_account_currency(filters):
 
 def get_result(filters, account_details):
 	gl_entries = get_gl_entries(filters)
-
 	data = get_data_with_opening_closing(filters, account_details, gl_entries)
-
+	
 	result = get_result_as_list(data, filters)
-
+	
 	return result
 
 def get_gl_entries(filters):
@@ -121,18 +119,10 @@ def get_gl_entries(filters):
 	select_fields = """, debit, credit, debit_in_account_currency,
 		credit_in_account_currency """
 
-	group_by_statement = ''
 	order_by_statement = "order by posting_date, account"
 
 	if filters.get("group_by") == _("Group by Voucher"):
 		order_by_statement = "order by posting_date, voucher_type, voucher_no"
-
-	if filters.get("group_by") == _("Group by Voucher (Consolidated)"):
-		group_by_statement = "group by voucher_type, voucher_no, account, cost_center"
-
-		select_fields = """, sum(debit) as debit, sum(credit) as credit,
-			sum(debit_in_account_currency) as debit_in_account_currency,
-			sum(credit_in_account_currency) as  credit_in_account_currency"""
 
 	if filters.get("include_default_book_entries"):
 		filters['company_fb'] = frappe.db.get_value("Company",
@@ -144,11 +134,9 @@ def get_gl_entries(filters):
 			posting_date, account, party_type, party,
 			voucher_type, voucher_no, cost_center, project,
 			against_voucher_type, against_voucher, account_currency,
-			remarks, against, is_opening,
-			GROUP_CONCAT(account SEPARATOR '<br>') as accounts_list,
+			remarks, against, is_opening, GROUP_CONCAT(account SEPARATOR '<br>') as accounts_list,
 			GROUP_CONCAT(debit_in_account_currency SEPARATOR '<br>') as debit_list,
-			GROUP_CONCAT(credit_in_account_currency SEPARATOR '<br>') as credit_list
-		{select_fields}
+			GROUP_CONCAT(credit_in_account_currency SEPARATOR '<br>') as credit_list {select_fields}
 		from `tabGL Entry`
 		where company=%(company)s {conditions}
 		Group by voucher_no
@@ -158,7 +146,7 @@ def get_gl_entries(filters):
 			order_by_statement=order_by_statement
 		),
 		filters, as_dict=1)
-	
+
 	if filters.get('presentation_currency'):
 		return convert_to_presentation_currency(gl_entries, currency_map)
 	else:
@@ -179,19 +167,20 @@ def get_conditions(filters):
 	if filters.get("voucher_no"):
 		conditions.append("voucher_no=%(voucher_no)s")
 
-	# if filters.get("group_by") == "Group by Party" and not filters.get("party_type"):
-	# 	conditions.append("party_type in ('Customer', 'Supplier')")
+	#if filters.get("group_by") == "Group by Party" and not filters.get("party_type"):
+	#	conditions.append("party_type in ('Customer', 'Supplier')")
 
-	if filters.get("party_type"):
-		conditions.append("party_type=%(party_type)s")
+	# if filters.get("party_type"):
+	# 	conditions.append("party_type=%(party_type)s")
 
-	if filters.get("party"):
-		conditions.append("party in %(party)s")
+	# if filters.get("party"):
+	# 	conditions.append("party in %(party)s")
 
 	if not (filters.get("account") or filters.get("party") or
 		filters.get("group_by") in ["Group by Account", "Group by Party"]):
 		conditions.append("posting_date >=%(from_date)s")
-		conditions.append("posting_date <=%(to_date)s")
+
+	conditions.append("(posting_date <=%(to_date)s or is_opening = 'Yes')")
 
 	if filters.get("project"):
 		conditions.append("project in %(project)s")
@@ -207,6 +196,13 @@ def get_conditions(filters):
 
 	if match_conditions:
 		conditions.append(match_conditions)
+
+	accounting_dimensions = get_accounting_dimensions()
+
+	if accounting_dimensions:
+		for dimension in accounting_dimensions:
+			if filters.get(dimension):
+				conditions.append("{0} in (%({0})s)".format(dimension))
 
 	return "and {}".format(" and ".join(conditions)) if conditions else ""
 
@@ -285,6 +281,7 @@ def initialize_gle_map(gl_entries, filters):
 def get_accountwise_gle(filters, gl_entries, gle_map):
 	totals = get_totals_dict()
 	entries = []
+	consolidated_gle = OrderedDict()
 	group_by = group_by_field(filters.get('group_by'))
 
 	def update_value_in_dict(data, key, gle):
@@ -309,11 +306,19 @@ def get_accountwise_gle(filters, gl_entries, gle_map):
 			update_value_in_dict(totals, 'total', gle)
 			if filters.get("group_by") != _('Group by Voucher (Consolidated)'):
 				gle_map[gle.get(group_by)].entries.append(gle)
-			else:
-				entries.append(gle)
+			elif filters.get("group_by") == _('Group by Voucher (Consolidated)'):
+				key = (gle.get("voucher_type"), gle.get("voucher_no"),
+					gle.get("account"), gle.get("cost_center"))
+				if key not in consolidated_gle:
+					consolidated_gle.setdefault(key, gle)
+				else:
+					update_value_in_dict(consolidated_gle, key, gle)
 
 			update_value_in_dict(gle_map[gle.get(group_by)].totals, 'closing', gle)
 			update_value_in_dict(totals, 'closing', gle)
+
+	for key, value in consolidated_gle.items():
+		entries.append(value)
 
 	return totals, entries
 

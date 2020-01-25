@@ -65,7 +65,8 @@ frappe.ui.CommentArea = class CommentArea {
 				mentions: this.mentions,
 				match: /\B([@:]\w*)/,
 				search: function (keyword, callback) {
-					let items = [];
+					let items   = [];
+					let user_id = [];
 					if (keyword.startsWith('@')) {
 						keyword = keyword.substr(1);
 						items = this.mentions;
@@ -74,7 +75,8 @@ frappe.ui.CommentArea = class CommentArea {
 							.filter(k => k.startsWith(keyword))
 							.slice(0, 7);
 					}
-					callback($.grep(items, function (item) {
+					items.map(value => user_id.push(value['id']));
+					callback($.grep(user_id, function (item) {
 						return item.indexOf(keyword) == 0;
 					}));
 				},

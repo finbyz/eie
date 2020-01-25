@@ -2,6 +2,7 @@
 // MIT License. See license.txt
 
 frappe.provide('frappe.timeline');
+frappe.provide('frappe.email');
 frappe.separator_element = '<div>---</div>';
 
 frappe.ui.form.Timeline = class Timeline {
@@ -12,21 +13,29 @@ frappe.ui.form.Timeline = class Timeline {
 
 	make() {
 		var me = this;
-		this.wrapper = $(frappe.render_template("timeline",
-			{doctype: me.frm.doctype, allow_events_in_timeline: me.frm.meta.allow_events_in_timeline})).appendTo(me.parent);
+		this.wrapper = $(frappe.render_template("timeline",{doctype: me.frm.doctype,allow_events_in_timeline: me.frm.meta.allow_events_in_timeline})).appendTo(me.parent);
 
+		this.set_automatic_link_email();
 		this.list = this.wrapper.find(".timeline-items");
+		this.email_link = this.wrapper.find(".timeline-email-import");
 
-		this.comment_area = new frappe.ui.CommentArea({
+		this.comment_area = frappe.ui.form.make_control({
 			parent: this.wrapper.find('.timeline-head'),
+			df: {
+				fieldtype: 'Comment',
+				fieldname: 'comment',
+				label: 'Comment'
+			},
 			mentions: this.get_names_for_mentions(),
+			render_input: true,
+			only_input: true,
 			on_submit: (val) => {
-				val && this.insert_comment(
-					"Comment", val, this.comment_area.button);
+				if(strip_html(val).trim() != "") {
+					this.insert_comment(val, this.comment_area.button);
+				}
 			}
 		});
 
-		this.setup_editing_area();
 		this.setup_email_button();
 		this.setup_interaction_button();
 
@@ -67,6 +76,10 @@ frappe.ui.form.Timeline = class Timeline {
 			});
 		});
 
+		this.email_link.on("click", function(e) {
+			let text = $(e.currentTarget).find(".copy-to-clipboard").text();
+			frappe.utils.copy_to_clipboard(text);
+		});
 	}
 
 	setup_email_button() {
@@ -95,13 +108,41 @@ frappe.ui.form.Timeline = class Timeline {
 						subject: __("Re: {0}", [me.frm.doc.subject]),
 					});
 				} else {
-					const comment_value = frappe.markdown(me.comment_area.val());
+					const comment_value = frappe.markdown(me.comment_area.get_value());
 					$.extend(args, {
 						txt: strip_html(comment_value) ? comment_value : ''
 					});
 				}
 				new frappe.views.CommunicationComposer(args)
 			});
+	}
+
+	set_automatic_link_email() {
+		if (!frappe.email.automatic_link_email){
+			frappe.call("frappe.email.doctype.email_account.email_account.get_automatic_email_link").then((r) => {
+				if (r && r.message) {
+					frappe.email.automatic_link_email = r.message;
+				} else {
+					frappe.email.automatic_link_email = null;
+				}
+				this.display_automatic_link_email();
+			});
+		} else {
+			this.display_automatic_link_email();
+		}
+	}
+
+	display_automatic_link_email() {
+		var me = this;
+		if (frappe.email.automatic_link_email){
+			let email_id = frappe.email.automatic_link_email;
+			email_id =  email_id.split("@")[0] +"+"+ encodeURIComponent(me.frm.doctype) +"+"+ encodeURIComponent(me.frm.docname)
+				+"@"+ email_id.split("@")[1];
+
+			$(".timeline-email-import-link").text(email_id);
+		} else {
+			$('.timeline-email-import').addClass("hide");
+		}
 	}
 
 	setup_interaction_button() {
@@ -143,11 +184,25 @@ frappe.ui.form.Timeline = class Timeline {
 		}
 		this.wrapper.toggle(true);
 		this.list.empty();
-		this.comment_area.val('');
-		let communications = this.get_communications(true);
-		var views = this.get_view_logs();
+		this.comment_area.set_value('');
 
+		// get all communications
+		let communications = this.get_communications(true);
+
+		// append views
+		var views = this.get_view_logs();
 		var timeline = communications.concat(views);
+
+		// append comments
+		timeline = timeline.concat(this.get_comments());
+
+		// append energy point logs
+		timeline = timeline.concat(this.get_energy_point_logs());
+
+		// append milestones
+		timeline = timeline.concat(this.get_milestones());
+
+		// sort
 		timeline
 			.filter(a => a.content)
 			.sort((b, c) => me.compare_dates(b, c))
@@ -223,9 +278,12 @@ frappe.ui.form.Timeline = class Timeline {
 				e.preventDefault();
 				var name = $timeline_item.data('name');
 
+				// fix quill editor's tooltip
+				$timeline_item.attr('style', 'overflow: visible;');
+				$timeline_item.find('.timeline-content-show').attr('style', 'overflow: visible;');
+
 				if($timeline_item.hasClass('is-editing')) {
-					me.editing_area.submit();
-					me.$editing_area.detach();
+					me.current_editing_area.submit();
 				} else {
 					const $edit_btn = $(this);
 					const $timeline_content = $timeline_item.find('.timeline-item-content');
@@ -242,14 +300,11 @@ frappe.ui.form.Timeline = class Timeline {
 					$timeline_item.addClass('is-editing');
 
 					// initialize editing area
-					// me.editing_area = me.make_editing_area($timeline_edit);
-					me.editing_area.setup_summernote();
-					me.editing_area.val(content);
+					me.current_editing_area = me.make_editing_area($timeline_edit);
+					me.current_editing_area.set_value(content);
 
 					// submit handler
-					me.editing_area.on_submit = (value) => {
-						me.editing_area.destroy();
-						value = value.trim();
+					me.current_editing_area.on_submit = (value) => {
 						$timeline_edit.empty();
 						$timeline_content.show();
 
@@ -260,15 +315,6 @@ frappe.ui.form.Timeline = class Timeline {
 						// all changes to the timeline_item for editing are reset after calling refresh
 						me.refresh();
 					};
-
-					$timeline_item
-						.find('.timeline-item-content')
-						.hide();
-					$timeline_item
-						.find('.timeline-content-show')
-						.append(me.$editing_area);
-					$timeline_item
-						.addClass('is-editing');
 				}
 
 				return false;
@@ -283,36 +329,50 @@ frappe.ui.form.Timeline = class Timeline {
 	}
 
 	add_reply_btn_event($timeline_item, c) {
-		var me = this;
-		$timeline_item.find(".reply-link").on("click", function() {
-			var name = $(this).attr("data-name");
+		$timeline_item.on('click', '.reply-link, .reply-link-all', (e) => {
 			var last_email = null;
 
-			// find the email tor reply to
-			me.get_communications().forEach(function(c) {
-				if(c.name==name) {
+			const $target = $(e.currentTarget);
+			const name = $target.data().name;
+
+			// find the email to reply to
+			this.get_communications().forEach(function(c) {
+				if(c.name == name) {
 					last_email = c;
 					return false;
 				}
 			});
 
-			// make the composer
-			new frappe.views.CommunicationComposer({
-				doc: me.frm.doc,
+			const opts = {
+				doc: this.frm.doc,
 				txt: "",
 				title: __('Reply'),
-				frm: me.frm,
-				last_email: last_email,
+				frm: this.frm,
+				last_email,
 				is_a_reply: true
-			});
+			};
+
+			if ($target.is('.reply-link-all')) {
+				if (last_email) {
+					opts.cc = last_email.cc;
+					opts.bcc = last_email.bcc;
+				}
+			}
+
+			// make the composer
+			new frappe.views.CommunicationComposer(opts);
 		});
 	}
 
 	prepare_timeline_item(c) {
-		if(!c.sender) c.sender = c.owner;
+		if(!c.sender) c.sender = c.owner || 'Guest';
 
 		if(c.sender && c.sender.indexOf("<")!==-1) {
 			c.sender = c.sender.split("<")[1].split(">")[0];
+		}
+
+		if (!c.doctype && ['Comment', 'Communication'].includes(c.communication_type)) {
+			c.doctype = c.communication_type;
 		}
 
 		c.user_info = frappe.user_info(c.sender);
@@ -320,12 +380,12 @@ frappe.ui.form.Timeline = class Timeline {
 		c["delete"] = "";
 		c["edit"] = "";
 		if(c.communication_type=="Comment" && (c.comment_type || "Comment") === "Comment") {
-			if(frappe.model.can_delete("Communication")) {
-				c["delete"] = '<a class="close delete-comment" title="Delete"  href="#"><i class="octicon octicon-x"></i></a>';
+			if(frappe.model.can_delete("Comment")) {
+				c["delete"] = `<a class="close delete-comment" title="${__('Delete')}"  href="#"><i class="octicon octicon-x"></i></a>`;
 			}
 
 			if(frappe.user.name == c.sender || (frappe.user.name == 'Administrator')) {
-				c["edit"] = '<a class="edit-comment text-muted" title="Edit" href="#">Edit</a>';
+				c["edit"] = `<a class="edit-comment text-muted" title="${__('Edit')}" href="#">${__('Edit')}</a>`;
 			}
 		}
 		let communication_date = c.communication_date || c.creation;
@@ -369,25 +429,6 @@ frappe.ui.form.Timeline = class Timeline {
 			} else {
 				c.content_html = c.content;
 				c.content_html = frappe.utils.strip_whitespace(c.content_html);
-				c.content_html = c.content_html.replace(/&lt;/g,"<").replace(/&gt;/g,">");
-			}
-
-			// bold @mentions
-			if(c.comment_type==="Comment" &&
-				// avoid adding <b> tag a 2nd time
-				!c.content_html.match(/(^|\W)<b>(@[^\s]+)<\/b>/)
-			) {
-				/*
-					Replace the email ids by only displaying the string which
-					occurs before the second `@` to enhance the mentions.
-					Eg.
-					@abc@a-example.com will be converted to
-					@abc with the below line of code.
-				*/
-
-				c.content_html = c.content_html.replace(/(<[a][^>]*>)/g, "");
-				// bold the @mentions
-				c.content_html = c.content_html.replace(/(@[^\s@]*)@[^\s@|<]*/g, "<b>$1</b>");
 			}
 
 			if (this.is_communication_or_comment(c)) {
@@ -426,8 +467,6 @@ frappe.ui.form.Timeline = class Timeline {
 	set_icon_and_color(c) {
 		if(c.communication_type == "Feedback"){
 			c.icon = "octicon octicon-comment-discussion"
-			c.rating_icons = frappe.render_template("rating_icons", {rating: c.rating, show_label: true})
-			c.color = "#f39c12"
 		} else {
 			c.icon = {
 				"Email": "octicon octicon-mail",
@@ -437,12 +476,12 @@ frappe.ui.form.Timeline = class Timeline {
 				"Event": "fa fa-calendar",
 				"Meeting": "octicon octicon-briefcase",
 				"ToDo": "fa fa-check",
-				"Created": "octicon octicon-plus",
 				"Submitted": "octicon octicon-lock",
 				"Cancelled": "octicon octicon-x",
 				"Assigned": "octicon octicon-person",
 				"Assignment Completed": "octicon octicon-check",
 				"Comment": "octicon octicon-comment-discussion",
+				"Milestone": "octicon octicon-milestone",
 				"Workflow": "octicon octicon-git-branch",
 				"Label": "octicon octicon-tag",
 				"Attachment": "octicon octicon-cloud-upload",
@@ -454,25 +493,6 @@ frappe.ui.form.Timeline = class Timeline {
 				"Relinked": "octicon octicon-check",
 				"Reply": "octicon octicon-mail-reply"
 			}[c.comment_type || c.communication_medium]
-
-			c.color = {
-				"Email": "#3498db",
-				"Chat": "#3498db",
-				"Phone": "#3498db",
-				"SMS": "#3498db",
-				"Created": "#1abc9c",
-				"Submitted": "#1abc9c",
-				"Cancelled": "#c0392b",
-				"Assigned": "#f39c12",
-				"Assignment Completed": "#16a085",
-				"Comment": "#f39c12",
-				"Workflow": "#2c3e50",
-				"Label": "#2c3e50",
-				"Attachment": "#7f8c8d",
-				"Attachment Removed": "#eee",
-				"Relinked": "#16a085",
-				"Reply": "#8d99a6"
-			}[c.comment_type || c.communication_medium];
 
 			c.icon_fg = {
 				"Attachment Removed": "#333",
@@ -498,7 +518,7 @@ frappe.ui.form.Timeline = class Timeline {
 		var docinfo = this.frm.get_docinfo(),
 			me = this,
 			out = [];
-		for(let c of docinfo.views){
+		for (let c of docinfo.views){
 			c.content = `<a href="#Form/View Log/${c.name}"> ${__("viewed")}</a>`;
 			c.comment_type = "Info";
 			out.push(c);
@@ -506,40 +526,93 @@ frappe.ui.form.Timeline = class Timeline {
 		return out;
 	}
 
+	get_comments() {
+		let docinfo = this.frm.get_docinfo();
+
+		for (let c of docinfo.comments) {
+			this.cast_comment_as_communication(c);
+		}
+
+		return docinfo.comments;
+	}
+
+	get_energy_point_logs() {
+		let energy_point_logs = this.frm.get_docinfo().energy_point_logs;
+		energy_point_logs.map(log => {
+			log.comment_type = 'Energy Points';
+			log.content = frappe.energy_points.format_form_log(log);
+			return log;
+		});
+		return energy_point_logs;
+	}
+
+	get_milestones() {
+		let milestones = this.frm.get_docinfo().milestones;
+		milestones.map(log => {
+			log.color = 'dark';
+			log.sender = log.owner;
+			log.comment_type = 'Milestone';
+			log.content = __('{0} changed {1} to {2}', [
+				frappe.user.full_name(log.owner).bold(),
+				frappe.meta.get_label(this.frm.doctype, log.track_field),
+				log.value.bold()]);
+			return log;
+		});
+		return milestones;
+	}
+
+	cast_comment_as_communication(c) {
+		c.sender = c.comment_email;
+		c.sender_full_name = c.comment_by;
+		c.communication_type = 'Comment';
+	}
+
 	build_version_comments(docinfo, out) {
 		var me = this;
 		docinfo.versions.forEach(function(version) {
-			if(!version.data) return;
+			if (!version.data) return;
 			var data = JSON.parse(version.data);
 
 			// comment
-			if(data.comment) {
+			if (data.comment) {
 				out.push(me.get_version_comment(version, data.comment, data.comment_type));
 				return;
 			}
 
+			let data_import_link = frappe.utils.get_form_link(
+				'Data Import Beta',
+				data.data_import,
+				true,
+				__('via Data Import')
+			);
+
 			// value changed in parent
-			if(data.changed && data.changed.length) {
+			if (data.changed && data.changed.length) {
 				var parts = [];
 				data.changed.every(function(p) {
-					if(p[0]==='docstatus') {
-						if(p[2]==1) {
-							out.push(me.get_version_comment(version, __('submitted this document')));
+					if (p[0]==='docstatus') {
+						if (p[2]==1) {
+							let message = data.data_import
+								? __('submitted this document {0}', [data_import_link])
+								: __('submitted this document');
+							out.push(me.get_version_comment(version, message));
 						} else if (p[2]==2) {
-							out.push(me.get_version_comment(version, __('cancelled this document')));
+							let message = data.data_import
+								? __('cancelled this document {0}', [data_import_link])
+								: __('cancelled this document');
+							out.push(me.get_version_comment(version, message));
 						}
 					} else {
-
-						var df = frappe.meta.get_docfield(me.frm.doctype, p[0], me.frm.docname);
-
-						if(df && !df.hidden) {
-							var field_display_status = frappe.perm.get_field_display_status(df, null,
+						p = p.map(frappe.utils.escape_html);
+						const df = frappe.meta.get_docfield(me.frm.doctype, p[0], me.frm.docname);
+						if (df && !df.hidden) {
+							const field_display_status = frappe.perm.get_field_display_status(df, null,
 								me.frm.perm);
-							if(field_display_status === 'Read' || field_display_status === 'Write') {
+							if (field_display_status === 'Read' || field_display_status === 'Write') {
 								parts.push(__('{0} from {1} to {2}', [
 									__(df.label),
-									(frappe.ellipsis(p[1], 40) || '""').bold(),
-									(frappe.ellipsis(p[2], 40) || '""').bold()
+									(frappe.ellipsis(frappe.utils.html2text(p[1]), 40) || '""').bold(),
+									(frappe.ellipsis(frappe.utils.html2text(p[2]), 40) || '""').bold()
 								]));
 							}
 						}
@@ -547,12 +620,18 @@ frappe.ui.form.Timeline = class Timeline {
 					return parts.length < 3;
 				});
 				if(parts.length) {
-					out.push(me.get_version_comment(version, __("changed value of {0}", [parts.join(', ')])));
+					let message;
+					if (data.data_import) {
+						message = __("changed value of {0} {1}", [parts.join(', ').bold(), data_import_link]);
+					} else {
+						message = __("changed value of {0}", [parts.join(', ').bold()]);
+					}
+					out.push(me.get_version_comment(version, message));
 				}
 			}
 
 			// value changed in table field
-			if(data.row_changed && data.row_changed.length) {
+			if (data.row_changed && data.row_changed.length) {
 				var parts = [], count = 0;
 				data.row_changed.every(function(row) {
 					row[3].every(function(p) {
@@ -579,8 +658,13 @@ frappe.ui.form.Timeline = class Timeline {
 					return parts.length < 3;
 				});
 				if(parts.length) {
-					out.push(me.get_version_comment(version, __("changed values for {0}",
-						[parts.join(', ')])));
+					let message;
+					if (data.data_import) {
+						message = __("changed values for {0} {1}", [parts.join(', '), data_import_link]);
+					} else {
+						message = __("changed values for {0}", [parts.join(', ')]);
+					}
+					out.push(me.get_version_comment(version, message));
 				}
 			}
 
@@ -624,47 +708,25 @@ frappe.ui.form.Timeline = class Timeline {
 		};
 	}
 
-	insert_comment(comment_type, comment, btn) {
+	insert_comment(comment, btn) {
 		var me = this;
-		if(!this.frm.doc.__islocal){
-			return frappe.call({
+		return frappe.call({
 			method: "frappe.desk.form.utils.add_comment",
 			args: {
-				doc:{
-					doctype: "Communication",
-					communication_type: "Comment",
-					comment_type: comment_type || "Comment",
-					reference_doctype: this.frm.doctype,
-					reference_name: this.frm.docname,
-					content: comment,
-					sender: frappe.session.user
-				}
+				reference_doctype: this.frm.doctype,
+				reference_name: this.frm.docname,
+				content: comment,
+				comment_email: frappe.session.user
 			},
 			btn: btn,
 			callback: function(r) {
 				if(!r.exc) {
-					me.comment_area.val('');
+					me.comment_area.set_value('');
 					frappe.utils.play_sound("click");
-
-					var comment = r.message;
-					var comments = me.get_communications();
-					var comment_exists = false;
-					for (var i=0, l=comments.length; i<l; i++) {
-						if (comments[i].name==comment.name) {
-							comment_exists = true;
-							break;
-						}
-					}
-					if (comment_exists) {
-						return;
-					}
-
-					me.frm.get_docinfo().communications = comments.concat([r.message]);
-					me.refresh(true);
+					frappe.timeline.new_communication(r.message);
 				}
 			}
 		});
-		}
 
 	}
 
@@ -675,7 +737,7 @@ frappe.ui.form.Timeline = class Timeline {
 			return frappe.call({
 				method: "frappe.client.delete",
 				args: {
-					doctype: "Communication",
+					doctype: "Comment",
 					name: name
 				},
 				callback: function(r) {
@@ -749,8 +811,14 @@ frappe.ui.form.Timeline = class Timeline {
 	get_names_for_mentions() {
 		var valid_users = Object.keys(frappe.boot.user_info)
 			.filter(user => !["Administrator", "Guest"].includes(user));
-
-		return valid_users.map(user => frappe.boot.user_info[user].name);
+		valid_users = valid_users
+			.filter(user => frappe.boot.user_info[user].allowed_in_mentions==1);
+		return valid_users.map(user => {
+			return {
+				id: frappe.boot.user_info[user].name,
+				value: frappe.boot.user_info[user].fullname,
+			}
+		});
 	}
 
 	setup_comment_like() {
@@ -762,6 +830,9 @@ frappe.ui.form.Timeline = class Timeline {
 
 $.extend(frappe.timeline, {
 	new_communication: function(communication) {
+		if (!communication.communication_type) {
+			communication.communication_type = 'Comment';
+		}
 		var docinfo = frappe.model.get_docinfo(communication.reference_doctype, communication.reference_name);
 		if (docinfo && docinfo.communications) {
 			var communications = docinfo.communications;
@@ -826,4 +897,4 @@ $.extend(frappe.timeline, {
 
 		return index;
 	}
-})
+});

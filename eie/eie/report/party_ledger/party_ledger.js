@@ -1,5 +1,6 @@
-// Copyright (c) 2018, Frappe Technologies Pvt. Ltd. and Contributors
-// License: GNU General Public License v3. See license.txt
+// Copyright (c) 2016, FinByz Tech Pvt Ltd and contributors
+// For license information, please see license.txt
+/* eslint-disable */
 
 frappe.query_reports["Party Ledger"] = {
 	"filters": [
@@ -57,40 +58,6 @@ frappe.query_reports["Party Ledger"] = {
 			}
 		},
 		{
-			"fieldname":"cost_center",
-			"label": __("Cost Center"),
-			"fieldtype": "MultiSelect",
-			get_data: function() {
-				var cost_centers = frappe.query_report.get_filter_value("cost_center") || "";
-
-				const values = cost_centers.split(/\s*,\s*/).filter(d => d);
-				const txt = cost_centers.match(/[^,\s*]*$/)[0] || '';
-				let data = [];
-
-				frappe.call({
-					type: "GET",
-					method:'frappe.desk.search.search_link',
-					async: false,
-					no_spinner: true,
-					args: {
-						doctype: "Cost Center",
-						txt: txt,
-						filters: {
-							"company": frappe.query_report.get_filter_value("company"),
-							"name": ["not in", values]
-						}
-					},
-					callback: function(r) {
-						data = r.results;
-					}
-				});
-				return data;
-			}
-		},
-		{
-			"fieldtype": "Break",
-		},
-		{
 			"fieldname":"group_by",
 			"label": __("Group by"),
 			"fieldtype": "Select",
@@ -109,15 +76,24 @@ frappe.query_reports["Party Ledger"] = {
 			"fieldtype": "Select",
 			"options": erpnext.get_presentation_currency_list()
 		},
-		{
-			"fieldname": "show_opening_entries",
-			"label": __("Show Opening Entries"),
-			"fieldtype": "Check"
-		},
-		{
-			"fieldname": "include_default_book_entries",
-			"label": __("Include Default Book Entries"),
-			"fieldtype": "Check"
-		}
+		// {
+		// 	"fieldname": "show_opening_entries",
+		// 	"label": __("Show Opening Entries"),
+		// 	"fieldtype": "Check"
+		// },
+		// {
+		// 	"fieldname": "include_default_book_entries",
+		// 	"label": __("Include Default Book Entries"),
+		// 	"fieldtype": "Check"
+		// }
 	]
-}
+};
+
+erpnext.dimension_filters.forEach((dimension) => {
+	frappe.query_reports["Party Ledger"].filters.splice(15, 0 ,{
+		"fieldname": dimension["fieldname"],
+		"label": __(dimension["label"]),
+		"fieldtype": "Link",
+		"options": dimension["document_type"]
+	});
+});

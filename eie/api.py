@@ -961,8 +961,9 @@ def make_quotation(source_name , target_doc=None):
 
 @frappe.whitelist()
 def emd_sd_mail():
-	enqueue(send_emd_reminder, queue='long', timeout=5000, job_name='EMD Mails')
-	enqueue(send_sd_reminder, queue='long', timeout=5000, job_name='SD Mails')
+	if getdate().weekday() == 6 and getdate().isocalendar()[1] % 2 == 0:
+		enqueue(send_emd_reminder, queue='long', timeout=5000, job_name='EMD Mails')
+		enqueue(send_sd_reminder, queue='long', timeout=5000, job_name='SD Mails')
 
 @frappe.whitelist()
 def sales_invoice_mails():
@@ -1519,8 +1520,8 @@ def send_emd_reminder():
 			# outstanding.append(si.amount)
 			actual_amount.append(si.amount or 0.0)
 
-			# if bool(si.contact_email) and si.contact_email not in recipients:
-			# 	recipients.append(si.contact_email)
+			if bool(si.contact_email) and si.contact_email not in recipients:
+				recipients.append(si.contact_email)
 
 		message = header(customer, address_display, contact_display) + '' + table + '' + footer(actual_amount, company)
 		# message += "<br><br>Recipients: " + ','.join(recipients)
@@ -1528,8 +1529,7 @@ def send_emd_reminder():
 		try:
 			print(customer)
 			frappe.sendmail(
-				recipients='it@eieinstruments.com',
-				cc = 'anuj.sanklecha@finbyz.tech',
+				recipients=recipients,
 				subject = 'REFUND / RELEASE OF SECURITY DEPOSIT',
 				sender = sender,
 				message = message,
@@ -1650,8 +1650,8 @@ def send_sd_reminder():
 			company = si.company
 			contact_display = si.contact_display
 			address_display = si.address_display
-			# if bool(si.contact_email) and si.contact_email not in recipients:
-			# 	recipients.append(si.contact_email)
+			if bool(si.contact_email) and si.contact_email not in recipients:
+				recipients.append(si.contact_email)
 
 		message = header(customer, address_display, contact_display) + '' + table + '' + footer(actual_amount, company)
 		# message += "<br><br>Recipients: " + ','.join(recipients)
@@ -1659,8 +1659,7 @@ def send_sd_reminder():
 		try:
 			# frappe.sendmail(recipients='harshdeep.mehta@finbyz.tech',
 			frappe.sendmail(
-				recipients='it@eieinstruments.com',
-				cc = 'anuj.sanklecha@finbyz.tech',
+				recipients=recipients,
 				subject = 'REFUND / RELEASE OF SECURITY DEPOSIT',
 				sender = sender,
 				message = message,

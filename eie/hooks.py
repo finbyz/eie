@@ -141,7 +141,7 @@ override_whitelisted_methods = {
 	"frappe.core.page.permission_manager.permission_manager.reset": "eie.permission.reset",
 	"frappe.core.page.permission_manager.permission_manager.get_users_with_role": "eie.permission.get_users_with_role",
 	"frappe.core.page.permission_manager.permission_manager.get_standard_permissions": "eie.permission.get_standard_permissions",
-	"erpnext.accounts.doctype.payment_entry.payment_entry.get_outstanding_reference_documents": "eie.pe_override.get_outstanding_reference_documents",
+	#"erpnext.accounts.doctype.payment_entry.payment_entry.get_outstanding_reference_documents": "eie.pe_override.get_outstanding_reference_documents",
 	"frappe.email.inbox.create_email_flag_queue": "eie.inbox.create_email_flag_queue",
 }
 
@@ -154,10 +154,10 @@ doc_events = {
 		"on_submit": "eie.api.si_on_submit",
 		"on_cancel": "eie.api.si_on_cancel",
 	},
-	"Payment Entry": {
-		"validate" : "eie.api.pe_validate",
-		"on_submit": "eie.api.pe_on_submit",
-	},
+	# "Payment Entry": {
+		# "validate" : "eie.api.pe_validate",
+		# "on_submit": "eie.api.pe_on_submit",
+	# },
 	"Purchase Order": {
 		"before_save": "eie.api.po_before_save",
 		"on_submit": "eie.api.po_on_submit",
@@ -216,6 +216,7 @@ scheduler_events = {
 		"eie.api.create_purchase_order_daily",
 		"eie.api.sales_invoice_mails",
 		"eie.api.calibration_mails_daily",
+		"eie.api.emd_sd_mail",
 	],
 	"all": [
 		"eie.inbox.change_email_queue_status",
