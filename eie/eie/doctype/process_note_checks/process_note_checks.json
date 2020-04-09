@@ -1,0 +1,29 @@
+{
+ "creation": "2020-03-06 11:29:18.762222",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "required_check"
+ ],
+ "fields": [
+  {
+   "fieldname": "required_check",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Required check",
+   "reqd": 1
+  }
+ ],
+ "istable": 1,
+ "modified": "2020-03-06 11:29:18.762222",
+ "modified_by": "Administrator",
+ "module": "EIE",
+ "name": "Process Note Checks",
+ "owner": "Administrator",
+ "permissions": [],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

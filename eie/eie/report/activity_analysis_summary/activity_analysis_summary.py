@@ -67,13 +67,13 @@ def get_data(filters):
 		user_item_list = list(map(lambda u: u['Owner'] if 'Owner' in u else '', dt))
 		users = list(set(user_list))
 
-		
-	row["User Name"] = get_user_fullname(row['Created By'])
-	row["Document"] = user_list.count(row['Created By'])
-	cnt = insert_items(dt, row, doc, cnt)
-	row["Items"] = cnt
+		for row in d:	
+			row["User Name"] = get_user_fullname(row['Created By'])
+			row["Document"] = user_list.count(row['Created By'])
+			cnt = insert_items(dt, row, doc, cnt)
+			row["Items"] = cnt
 
-	data += dt
+			data += dt
 
 	return data 	
 

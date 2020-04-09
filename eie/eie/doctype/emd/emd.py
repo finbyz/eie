@@ -99,7 +99,7 @@ class EMD(Document):
 				'cost_center':'Main - ' + abbr
 			})
 
-			if self.expense_account and self.interest_amount > 0:
+			if self.interest_account and self.interest_amount > 0:
 
 				jv.append('accounts' ,{
 				'account': self.interest_account,

@@ -131,19 +131,19 @@ page_js = {"permission-manager" : "public/js/eie.min.js"}
 # override_whitelisted_methods = {
 # 	"frappe.desk.doctype.event.event.get_events": "eie.event.get_events"
 # }
-override_whitelisted_methods = {
- 	"erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice": "eie.api.make_sales_invoice",
- 	"frappe.core.page.permission_manager.permission_manager.get_roles_and_doctypes": "eie.permission.get_roles_and_doctypes",
- 	"frappe.core.page.permission_manager.permission_manager.get_permissions": "eie.permission.get_permissions",
-	"frappe.core.page.permission_manager.permission_manager.add": "eie.permission.add",
-	"frappe.core.page.permission_manager.permission_manager.update": "eie.permission.update",
-	"frappe.core.page.permission_manager.permission_manager.remove": "eie.permission.remove",
-	"frappe.core.page.permission_manager.permission_manager.reset": "eie.permission.reset",
-	"frappe.core.page.permission_manager.permission_manager.get_users_with_role": "eie.permission.get_users_with_role",
-	"frappe.core.page.permission_manager.permission_manager.get_standard_permissions": "eie.permission.get_standard_permissions",
-	#"erpnext.accounts.doctype.payment_entry.payment_entry.get_outstanding_reference_documents": "eie.pe_override.get_outstanding_reference_documents",
-	"frappe.email.inbox.create_email_flag_queue": "eie.inbox.create_email_flag_queue",
-}
+# override_whitelisted_methods = {
+#  	"erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice": "eie.api.make_sales_invoice",
+#  	"frappe.core.page.permission_manager.permission_manager.get_roles_and_doctypes": "eie.permission.get_roles_and_doctypes",
+#  	"frappe.core.page.permission_manager.permission_manager.get_permissions": "eie.permission.get_permissions",
+# 	"frappe.core.page.permission_manager.permission_manager.add": "eie.permission.add",
+# 	"frappe.core.page.permission_manager.permission_manager.update": "eie.permission.update",
+# 	"frappe.core.page.permission_manager.permission_manager.remove": "eie.permission.remove",
+# 	"frappe.core.page.permission_manager.permission_manager.reset": "eie.permission.reset",
+# 	"frappe.core.page.permission_manager.permission_manager.get_users_with_role": "eie.permission.get_users_with_role",
+# 	"frappe.core.page.permission_manager.permission_manager.get_standard_permissions": "eie.permission.get_standard_permissions",
+# 	#"erpnext.accounts.doctype.payment_entry.payment_entry.get_outstanding_reference_documents": "eie.pe_override.get_outstanding_reference_documents",
+# 	#"frappe.email.inbox.create_email_flag_queue": "eie.inbox.create_email_flag_queue",
+# }
 
 
 
@@ -212,13 +212,64 @@ doc_events = {
 }
 
 scheduler_events = {
+	# "all": [
+	# 	"eie.inbox.change_email_queue_status",
+	# ],
 	"daily": [
 		"eie.api.create_purchase_order_daily",
 		"eie.api.sales_invoice_mails",
 		"eie.api.calibration_mails_daily",
 		"eie.api.emd_sd_mail",
 	],
-	"all": [
-		"eie.inbox.change_email_queue_status",
-	],
 }
+import frappe
+
+def override_after_insert(self):
+	from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
+	alert_dict = get_alert_dict(self)
+	if alert_dict:
+		frappe.publish_realtime('energy_point_alert', message=alert_dict, user=self.user)
+
+	frappe.cache().hdel('energy_points', self.user)
+	frappe.publish_realtime('update_points', after_commit=True)
+
+	if self.type not in ['Review', 'Revert']:
+		reference_user = self.user if self.type == 'Auto' else self.owner
+		notification_doc = {
+			'type': 'Energy Point',
+			'document_type': self.reference_doctype,
+			'document_name': self.reference_name,
+			'subject': get_notification_message(self),
+			'from_user': reference_user,
+			'email_content': '<div>{}</div>'.format(self.reason) if self.reason else None
+		}
+
+		enqueue_create_notification(self.user, notification_doc)
+		
+def revert(self, reason):
+	if self.type != 'Auto':
+		frappe.throw(_('This document cannot be reverted'))
+
+	if self.get('reverted'):
+		return
+
+	self.reverted = 1
+	self.save(ignore_permissions=True)
+
+	revert_log = frappe.get_doc({
+		'doctype': 'Energy Point Log',
+		'points': -(self.points),
+		'type': 'Revert',
+		'user': self.user,
+		'reason': reason,
+		'reference_doctype': self.reference_doctype,
+		'reference_name': self.reference_name,
+		'revert_of': self.name
+	}).insert(ignore_permissions=True)
+
+	return revert_log
+
+from frappe.social.doctype.energy_point_log.energy_point_log import EnergyPointLog, get_alert_dict
+# from eie.api import revert
+EnergyPointLog.revert = revert
+EnergyPointLog.after_insert = override_after_insert

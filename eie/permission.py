@@ -9,6 +9,7 @@ from frappe.modules.import_file import get_file_path, read_doc_from_file
 from frappe.translate import send_translations
 from frappe.core.doctype.doctype.doctype import (clear_permissions_cache,
 	validate_permissions_for_doctype)
+from frappe.utils.user import get_users_with_role as _get_user_with_role
 from frappe.permissions import (reset_perms, get_linked_doctypes, get_all_perms,
 	setup_custom_perms, add_permission, update_permission_property)
 
@@ -32,7 +33,7 @@ def get_roles_and_doctypes():
 	}, fields=["name"])
 
 	roles = frappe.get_all("Role", filters={
-		"name": ("not in", "Administrator", "System Manager"),
+		"name": ("not in", "Administrator"),
 		"disabled": 0,
 	}, or_filters={
 		"ifnull(restrict_to_domain, '')": "",
@@ -40,7 +41,7 @@ def get_roles_and_doctypes():
 	}, fields=["name"])
 
 	doctypes_list = [ {"label":_(d.get("name")), "value":d.get("name")} for d in doctypes]
-	roles_list = [ {"label":_(d.get("name")), "value":d.get("name")} for d in roles if d.get('name') != "System Manager"]
+	roles_list = [ {"label":_(d.get("name")), "value":d.get("name")} for d in roles]
 
 	return {
 		"doctypes": sorted(doctypes_list, key=lambda d: d['label']),
@@ -103,12 +104,7 @@ def reset(doctype):
 @frappe.whitelist()
 def get_users_with_role(role):
 	frappe.only_for(("System Manager","Local Admin"))
-	return [p[0] for p in frappe.db.sql("""select distinct tabUser.name
-		from `tabHas Role`, tabUser where
-			`tabHas Role`.role=%s
-			and tabUser.name != "Administrator"
-			and `tabHas Role`.parent = tabUser.name
-			and tabUser.enabled=1""", role)]
+	return _get_user_with_role(role)
 
 @frappe.whitelist()
 def get_standard_permissions(doctype):
@@ -121,3 +117,33 @@ def get_standard_permissions(doctype):
 		# also used to setup permissions via patch
 		path = get_file_path(meta.module, "DocType", doctype)
 		return read_doc_from_file(path).get("permissions")
+
+
+@frappe.whitelist()
+def docperm():
+	doc = frappe.new_doc("DocPerm")
+	doc.read = 1
+	doc.write = 1
+	doc.create = 1
+	doc.delete = 1
+	doc.idx = 2
+	doc.parent = "Custom DocPerm" #"Role"
+	doc.role = "Local Admin"
+	doc.parentfield = 'permissions'
+	doc.parenttype = "DocType"
+	
+	doc1 = frappe.new_doc("DocPerm")
+	doc1.read = 1
+	doc1.write = 1
+	doc1.create = 1
+	doc1.delete = 1
+	doc1.idx = 2
+	doc1.parent = "Role"
+	doc1.role = "Local Admin"
+	doc1.parentfield = 'permissions'
+	doc1.parenttype = "DocType"
+	
+	doc.db_insert()
+	doc1.db_insert()
+
+	frappe.db.commit()

@@ -15,6 +15,9 @@ from frappe.model.mapper import get_mapped_doc
 from frappe.utils.background_jobs import enqueue
 from email.utils import formataddr
 from frappe.core.doctype.communication.email import make
+import datetime
+from six import itervalues, string_types
+from erpnext.manufacturing.doctype.bom.bom import add_additional_cost
 
 @frappe.whitelist()
 def validate_serial_nos(self, method):
@@ -74,6 +77,7 @@ def SE_before_save(self,method):
 @frappe.whitelist()
 def customer_before_save(self,method):
 	update_industry(self)
+
 
 def update_industry(self):
 	if self.lead_name:
@@ -149,7 +153,10 @@ def si_on_cancel(self, method):
 
 def create_purchase_invoice(self):
 	pi = frappe.new_doc("Purchase Invoice")
-
+	
+	old_abbr = db.get_value("Company", self.company, 'abbr')
+	new_abbr = db.get_value("Company", self.customer, 'abbr')
+	
 	pi.posting_date = self.posting_date
 	pi.posting_time = self.posting_time
 	pi.set_posting_time = self.set_posting_time
@@ -175,7 +182,8 @@ def create_purchase_invoice(self):
 			'original_rate': item.original_rate,
 			'discount_per': item.discount_per,
 			'purchase_order': frappe.db.get_value("Purchase Order Item", item.purchase_order_item, 'parent'),
-			'po_detail': item.purchase_order_item
+			'po_detail': item.purchase_order_item,
+			'warehouse': 'Stores - %s' % new_abbr,
 		})
 
 	pi.taxes_and_charges = self.taxes_and_charges
@@ -183,9 +191,6 @@ def create_purchase_invoice(self):
 	pi.shipping_address = self.shipping_address_name
 	pi.shipping_address_display = self.shipping_address
 	pi.tc_name = 'Purchase Terms'
-
-	old_abbr = db.get_value("Company", self.company, 'abbr')
-	new_abbr = db.get_value("Company", self.customer, 'abbr')
 
 	for tax in self.taxes:
 		account_head = tax.account_head.replace(old_abbr, new_abbr)
@@ -668,13 +673,13 @@ def calculate_combine(self):
 
 	for item_code, values in main_item_dict.items():
 		main_item = main_item_object_dict.get(item_code)
-
-		main_item.combine_price_list_rate += main_item_dict[item_code]['price_list_amount'] / main_item.qty
-		main_item.combine_rate += main_item_dict[item_code]['com_rate'] / main_item.qty
-		main_item.combine_original_rate += main_item_dict[item_code]['combined_original_amount'] / main_item.qty
-		main_item.combined_amount += main_item_dict[item_code]['com_amount']
-		main_item.combine_percentage = (flt(main_item.combine_price_list_rate) - flt(main_item.combine_rate)) * 100 / main_item.combine_price_list_rate if main_item.combine_price_list_rate else 0.0
-		main_item.combine_discount = (flt(main_item.combine_original_rate- main_item.combine_rate)) * 100 / main_item.combine_original_rate if main_item.combine_original_rate else 0.0
+		if main_item:
+			main_item.combine_price_list_rate += main_item_dict[item_code]['price_list_amount'] / main_item.qty
+			main_item.combine_rate += main_item_dict[item_code]['com_rate'] / main_item.qty
+			main_item.combine_original_rate += main_item_dict[item_code]['combined_original_amount'] / main_item.qty
+			main_item.combined_amount += main_item_dict[item_code]['com_amount']
+			main_item.combine_percentage = (flt(main_item.combine_price_list_rate) - flt(main_item.combine_rate)) * 100 / main_item.combine_price_list_rate if main_item.combine_price_list_rate else 0.0
+			main_item.combine_discount = (flt(main_item.combine_original_rate- main_item.combine_rate)) * 100 / main_item.combine_original_rate if main_item.combine_original_rate else 0.0
 
 @frappe.whitelist()
 def ps_before_save(self,method):
@@ -964,11 +969,11 @@ def emd_sd_mail():
 	if getdate().weekday() == 6 and getdate().isocalendar()[1] % 2 == 0:
 		enqueue(send_emd_reminder, queue='long', timeout=5000, job_name='EMD Mails')
 		enqueue(send_sd_reminder, queue='long', timeout=5000, job_name='SD Mails')
+		return "SMD SD Mails Send"
 
 @frappe.whitelist()
 def sales_invoice_mails():
-	# if getdate().weekday() == 4 and getdate().isocalendar()[1] % 2 == 1:
-	if getdate().weekday() == 6 and getdate().isocalendar()[1] % 2 == 0:
+	if getdate().weekday() == 6 and getdate().isocalendar()[1] % 2 == 1:
 		enqueue(send_sales_invoice_mails, queue='long', timeout=5000, job_name='Payment Reminder Mails')
 		return "Payment Reminder Mails Send"
 
@@ -1194,8 +1199,8 @@ def pe_on_submit(self, method):
 	recipients = []
 	attachments.append(frappe.attach_print('Payment Entry', self.name, print_format="EIE Payment Entry", print_letterhead=True))
 	sender = formataddr(("Vasantkumar Parmar", 'vasant@eieinstruments.com'))
- 	if self.contact_email != None:
-	 	recipients.append(self.contact_email)
+	if self.contact_email != None:
+		recipients.append(self.contact_email)
 
 	if self.payment_type == 'Receive':
 		payment_receipt_alert(self, attachments, sender, recipients)
@@ -1390,6 +1395,7 @@ def send_calibration_mail(days):
 			frappe.sendmail(recipients=recipients,
 				subject = 'REMINDER FOR CALIBRATION ACTIVITY',
 				sender = sender,
+				cc = ['service.eiepl@gmail.com'],
 				message = message)
 		except:
 			frappe.publish_realtime(event="cities_progress", message={'status': "FAIL", 'customer': '', 'invoice': ''}, user=frappe.session.user)
@@ -1479,12 +1485,12 @@ def send_emd_reminder():
 
 	data = frappe.get_list("EMD", filters={
 		'due_date': ("<=", frappe.utils.nowdate()),
-		'returned': 1,
+		'returned': 0,
 		'deposit_account': ["like","%EMD Receivable%"],
 		'docstatus': 1
 		},
 		order_by='posting_date',
-		fields=["customer", "address_display", "contact_display", "tender_no", "due_date", "amount", "payment_mode", "reference_num", "bank_account", "tender_name", "company"]
+		fields=["customer", "address_display", "contact_display", "tender_no", "due_date", "amount", "payment_mode", "reference_num", "bank_account", "tender_name", "company", "contact_email"]
 	)
 
 	def get_customers():
@@ -1527,15 +1533,14 @@ def send_emd_reminder():
 		# message += "<br><br>Recipients: " + ','.join(recipients)
 		
 		try:
-			print(customer)
 			frappe.sendmail(
 				recipients=recipients,
 				subject = 'REFUND / RELEASE OF SECURITY DEPOSIT',
 				sender = sender,
+				cc = ['tender@eieinstruments.com'],
 				message = message,
 				attachments = attachments
 			)
-			
 			cnt += 1
 		except:
 			frappe.log_error("Mail Sending Issue", frappe.get_traceback())
@@ -1614,7 +1619,7 @@ def send_sd_reminder():
 		'docstatus': 1
 		},
 		order_by='posting_date',
-		fields=["customer", "address_display", "address_display", "tender_no", "due_date", "amount", "payment_mode", "reference_num", "bank_account", "tender_name", "company", "posting_date", "reference_date"]
+		fields=["customer", "address_display", "address_display", "tender_no", "due_date", "amount", "payment_mode", "reference_num", "bank_account", "tender_name", "company", "posting_date", "reference_date", "contact_email"]
 	)
 
 	def get_customers():
@@ -1662,9 +1667,9 @@ def send_sd_reminder():
 				recipients=recipients,
 				subject = 'REFUND / RELEASE OF SECURITY DEPOSIT',
 				sender = sender,
+				cc = ['tender@eieinstruments.com'],
 				message = message,
 				attachments = attachments,
-				now = True
 			)
 			
 			cnt += 1
@@ -1672,3 +1677,280 @@ def send_sd_reminder():
 			frappe.log_error("Mail Sending Issue", frappe.get_traceback())
 			continue
 	pass
+
+@frappe.whitelist()
+def make_stock_entry(work_order_id, purpose, qty=None):
+	#from erpnext.stock.doctype.stock_entry.stock_entry import get_additional_costs
+	work_order = frappe.get_doc("Work Order", work_order_id)
+	if not frappe.db.get_value("Warehouse", work_order.wip_warehouse, "is_group"):
+		wip_warehouse = work_order.wip_warehouse
+	else:
+		wip_warehouse = None
+
+	stock_entry = frappe.new_doc("Stock Entry")
+	stock_entry.purpose = purpose
+	stock_entry.work_order = work_order_id
+	stock_entry.company = work_order.company
+	stock_entry.from_bom = 1
+	stock_entry.bom_no = work_order.bom_no
+	stock_entry.use_multi_level_bom = work_order.use_multi_level_bom
+	stock_entry.fg_completed_qty = qty or (flt(work_order.qty) - flt(work_order.produced_qty))
+	if work_order.bom_no:
+		stock_entry.inspection_required = frappe.db.get_value('BOM',
+			work_order.bom_no, 'inspection_required')
+
+	if purpose=="Material Transfer for Manufacture":
+		stock_entry.to_warehouse = wip_warehouse
+		stock_entry.project = work_order.project
+	else:
+		stock_entry.from_warehouse = wip_warehouse
+		stock_entry.to_warehouse = work_order.fg_warehouse
+		stock_entry.project = work_order.project
+
+	stock_entry.set_stock_entry_type()
+	get_items(stock_entry)
+	return stock_entry.as_dict()
+	
+	
+def get_items(self):
+	self.set('items', [])
+	self.validate_work_order()
+
+	if not self.posting_date or not self.posting_time:
+		frappe.throw(_("Posting date and posting time is mandatory"))
+
+	self.set_work_order_details()
+
+	if self.bom_no:
+
+		if self.purpose in ["Material Issue", "Material Transfer", "Manufacture", "Repack",
+				"Send to Subcontractor", "Material Transfer for Manufacture", "Material Consumption for Manufacture"]:
+
+			if self.work_order and self.purpose == "Material Transfer for Manufacture":
+				item_dict = self.get_pending_raw_materials()
+				if self.to_warehouse and self.pro_doc:
+					for item in itervalues(item_dict):
+						item["to_warehouse"] = self.pro_doc.wip_warehouse
+				self.add_to_stock_entry_detail(item_dict)
+
+			elif (self.work_order and (self.purpose == "Manufacture" or self.purpose == "Material Consumption for Manufacture")
+				and not self.pro_doc.skip_transfer and frappe.db.get_single_value("Manufacturing Settings",
+				"backflush_raw_materials_based_on")== "Material Transferred for Manufacture"):
+				# frappe.msgprint('get items')
+				get_transfered_raw_materials(self)
+
+			elif self.work_order and (self.purpose == "Manufacture" or self.purpose == "Material Consumption for Manufacture") and \
+				frappe.db.get_single_value("Manufacturing Settings", "backflush_raw_materials_based_on")== "BOM" and \
+				frappe.db.get_single_value("Manufacturing Settings", "material_consumption")== 1:
+				self.get_unconsumed_raw_materials()
+			else:
+				if not self.fg_completed_qty:
+					frappe.throw(_("Manufacturing Quantity is mandatory"))
+
+				item_dict = self.get_bom_raw_materials(self.fg_completed_qty)
+
+				#Get PO Supplied Items Details
+				if self.purchase_order and self.purpose == "Send to Subcontractor":
+					#Get PO Supplied Items Details
+					item_wh = frappe._dict(frappe.db.sql("""
+						select rm_item_code, reserve_warehouse
+						from `tabPurchase Order` po, `tabPurchase Order Item Supplied` poitemsup
+						where po.name = poitemsup.parent
+							and po.name = %s""",self.purchase_order))
+
+				for item in itervalues(item_dict):
+					if self.pro_doc and (cint(self.pro_doc.from_wip_warehouse) or not self.pro_doc.skip_transfer):
+						item["from_warehouse"] = self.pro_doc.wip_warehouse
+					#Get Reserve Warehouse from PO
+					if self.purchase_order and self.purpose=="Send to Subcontractor":
+						item["from_warehouse"] = item_wh.get(item.item_code)
+					item["to_warehouse"] = self.to_warehouse if self.purpose=="Send to Subcontractor" else ""
+
+				self.add_to_stock_entry_detail(item_dict)
+
+			if self.purpose != "Send to Subcontractor" and self.purpose in ["Manufacture", "Repack"]:
+				scrap_item_dict = self.get_bom_scrap_material(self.fg_completed_qty)
+				for item in itervalues(scrap_item_dict):
+					if self.pro_doc and self.pro_doc.scrap_warehouse:
+						item["to_warehouse"] = self.pro_doc.scrap_warehouse
+
+				self.add_to_stock_entry_detail(scrap_item_dict, bom_no=self.bom_no)
+
+		# fetch the serial_no of the first stock entry for the second stock entry
+		if self.work_order and self.purpose == "Manufacture":
+			self.set_serial_nos(self.work_order)
+			work_order = frappe.get_doc('Work Order', self.work_order)
+			add_additional_cost(self, work_order)
+
+		# add finished goods item
+		if self.purpose in ("Manufacture", "Repack"):
+			self.load_items_from_bom()
+
+	self.set_actual_qty()
+	self.calculate_rate_and_amount(raise_error_if_no_rate=False)
+	
+def get_transfered_raw_materials(self):
+	# frappe.msgprint('inside get_transfered_raw_materials')
+	transferred_materials = frappe.db.sql("""
+		select
+			item_name, original_item, item_code, qty, sed.t_warehouse as warehouse,
+			description, stock_uom, expense_account, cost_center, batch_no
+		from `tabStock Entry` se,`tabStock Entry Detail` sed
+		where
+			se.name = sed.parent and se.docstatus=1 and se.purpose='Material Transfer for Manufacture'
+			and se.work_order= %s and ifnull(sed.t_warehouse, '') != ''
+	""", self.work_order, as_dict=1)
+
+	materials_already_backflushed = frappe.db.sql("""
+		select
+			item_code, sed.s_warehouse as warehouse, sum(qty) as qty
+		from
+			`tabStock Entry` se, `tabStock Entry Detail` sed
+		where
+			se.name = sed.parent and se.docstatus=1
+			and (se.purpose='Manufacture' or se.purpose='Material Consumption for Manufacture')
+			and se.work_order= %s and ifnull(sed.s_warehouse, '') != ''
+	""", self.work_order, as_dict=1)
+
+	backflushed_materials= {}
+	for d in materials_already_backflushed:
+		backflushed_materials.setdefault(d.item_code,[]).append({d.warehouse: d.qty})
+
+	po_qty = frappe.db.sql("""select qty, produced_qty, material_transferred_for_manufacturing from
+		`tabWork Order` where name=%s""", self.work_order, as_dict=1)[0]
+
+	manufacturing_qty = flt(po_qty.qty)
+	produced_qty = flt(po_qty.produced_qty)
+	trans_qty = flt(po_qty.material_transferred_for_manufacturing)
+
+	for item in transferred_materials:
+		qty= item.qty
+		item_code = item.original_item or item.item_code
+		req_items = frappe.get_all('Work Order Item',
+			filters={'parent': self.work_order, 'item_code': item_code},
+			fields=["required_qty", "consumed_qty"]
+			)
+		# frappe.msgprint('OUT')
+		if not req_items:
+			# frappe.msgprint('IN')
+			wo = frappe.get_doc("Work Order",self.work_order)
+			wo.append('required_items',{
+				'item_code': item.item_code,
+				'source_wareouse': item.items_warehouse
+			})
+			wo.save()
+			req_items = frappe.get_all('Work Order Item',
+				filters={'parent': self.work_order,'item_code':item_code},
+				fields=["required_qty", "consumed_qty"]
+			)
+			# frappe.msgprint(_("Did not found transfered item {0} in Work Order {1}, the item not added in Stock Entry")
+				# .format(item_code, self.work_order))
+			# continue
+
+		req_qty = flt(req_items[0].required_qty)
+		req_qty_each = flt(req_qty / manufacturing_qty)
+		consumed_qty = flt(req_items[0].consumed_qty)
+
+		if trans_qty and manufacturing_qty >= (produced_qty + flt(self.fg_completed_qty)):
+			# if qty >= req_qty:
+			# 	qty = (req_qty/trans_qty) * flt(self.fg_completed_qty)
+			# else:
+			qty = qty - consumed_qty
+
+			if self.purpose == 'Manufacture':
+				# If Material Consumption is booked, must pull only remaining components to finish product
+				if consumed_qty != 0:
+					remaining_qty = consumed_qty - (produced_qty * req_qty_each)
+					exhaust_qty = req_qty_each * produced_qty
+					if remaining_qty > exhaust_qty :
+						if (remaining_qty/(req_qty_each * flt(self.fg_completed_qty))) >= 1:
+							qty =0
+						else:
+							qty = (req_qty_each * flt(self.fg_completed_qty)) - remaining_qty
+				# else:
+				# 	qty = req_qty_each * flt(self.fg_completed_qty)
+
+
+		elif backflushed_materials.get(item.item_code):
+			for d in backflushed_materials.get(item.item_code):
+				if d.get(item.warehouse):
+					if (qty > req_qty):
+						qty = req_qty
+						qty-= d.get(item.warehouse)
+
+		if qty > 0:
+			add_to_stock_entry_detail(self, {
+				item.item_code: {
+					"from_warehouse": item.warehouse,
+					"to_warehouse": "",
+					"qty": qty,
+					"item_name": item.item_name,
+					"description": item.description,
+					"stock_uom": item.stock_uom,
+					"expense_account": item.expense_account,
+					"cost_center": item.buying_cost_center,
+					"original_item": item.original_item,
+					"batch_no": item.batch_no
+				}
+			})
+
+
+def add_to_stock_entry_detail(self, item_dict, bom_no=None):
+	cost_center = frappe.db.get_value("Company", self.company, 'cost_center')
+
+	for d in item_dict:
+		stock_uom = item_dict[d].get("stock_uom") or frappe.db.get_value("Item", d, "stock_uom")
+
+		se_child = self.append('items')
+		se_child.s_warehouse = item_dict[d].get("from_warehouse")
+		se_child.t_warehouse = item_dict[d].get("to_warehouse")
+		se_child.item_code = item_dict[d].get('item_code') or cstr(d)
+		se_child.item_name = item_dict[d]["item_name"]
+		se_child.description = item_dict[d]["description"]
+		se_child.uom = item_dict[d]["uom"] if item_dict[d].get("uom") else stock_uom
+		se_child.stock_uom = stock_uom
+		se_child.qty = flt(item_dict[d]["qty"], se_child.precision("qty"))
+		se_child.expense_account = item_dict[d].get("expense_account")
+		se_child.cost_center = item_dict[d].get("cost_center") or cost_center
+		se_child.allow_alternative_item = item_dict[d].get("allow_alternative_item", 0)
+		se_child.subcontracted_item = item_dict[d].get("main_item_code")
+		se_child.original_item = item_dict[d].get("original_item")
+		se_child.batch_no = item_dict[d].get("batch_no")
+
+		if item_dict[d].get("idx"):
+			se_child.idx = item_dict[d].get("idx")
+
+		if se_child.s_warehouse==None:
+			se_child.s_warehouse = self.from_warehouse
+		if se_child.t_warehouse==None:
+			se_child.t_warehouse = self.to_warehouse
+
+		# in stock uom
+		se_child.conversion_factor = flt(item_dict[d].get("conversion_factor")) or 1
+		se_child.transfer_qty = flt(item_dict[d]["qty"]*se_child.conversion_factor, se_child.precision("qty"))
+
+
+		# to be assigned for finished item
+		se_child.bom_no = bom_no
+
+def override_after_insert(self):
+	from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification
+	alert_dict = get_alert_dict(self)
+	if alert_dict:
+		frappe.publish_realtime('energy_point_alert', message=alert_dict, user=self.user)
+
+	frappe.cache().hdel('energy_points', self.user)
+	frappe.publish_realtime('update_points', after_commit=True)
+
+	if self.type not in ['Review', 'Revert']:
+		reference_user = self.user if self.type == 'Auto' else self.owner
+		notification_doc = {
+			'type': 'Energy Point',
+			'document_type': self.reference_doctype,
+			'document_name': self.reference_name,
+			'subject': get_notification_message(self),
+			'from_user': reference_user,
+			'email_content': '<div>{}</div>'.format(self.reason) if self.reason else None
+		}
+
+		enqueue_create_notification(self.user, notification_doc)
