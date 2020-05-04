@@ -53,8 +53,8 @@ def get_contitions(filters):
 	conditions += filters.owner and ' and owner = "%s"' %\
 	 filters.owner.replace("'","/'") or ''
 
- 	if filters.item_group:
-	 	item_group = get_item_group_list(filters.item_group.replace("'","/'"))
+	if filters.item_group:
+		item_group = get_item_group_list(filters.item_group.replace("'","/'"))
 		conditions += filters.item_group and " and item_group IN ('%s')" %\
 		 "','".join(item_group) or ''
 

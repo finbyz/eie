@@ -855,8 +855,9 @@ def get_warehouses(items, factory, company):
 def sales_order_ref(self):
 	for row in self.items:
 		so = frappe.db.get_value("Sales Order Item",{ 'parent':row.sales_order,'item_code':row.item_code}, 'qty')
-		if row.qty > so:
-			row.db_set('sales_order_item','')
+		if so:
+			if row.qty > so:
+				row.db_set('sales_order_item','')
 
 @frappe.whitelist()
 def create_purchase_order_daily():
