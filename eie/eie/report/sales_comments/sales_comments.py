@@ -151,7 +151,7 @@ def get_chart_data(data, filters):
 		date_range = int(to_date.strftime(period[based_on])) - int(from_date.strftime(period[based_on]))
 		
 	if based_on == "Day":
-		for d in xrange(date_range+1):
+		for d in range(date_range+1):
 			cnt = 0
 			date = from_date + datetime.timedelta(days=d)
 			for row in data:
@@ -164,7 +164,7 @@ def get_chart_data(data, filters):
 	
 	else:
 		period_date = dict()
-		for x in xrange(date_diff(to_date, from_date)+1):
+		for x in range(date_diff(to_date, from_date)+1):
 			tmp_date = from_date + datetime.timedelta(days=x)
 			tmp_period = str(tmp_date.strftime("%y-"+period[based_on]))
 			if tmp_period not in period_date:

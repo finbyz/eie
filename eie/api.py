@@ -10,12 +10,12 @@ from erpnext.utilities.product import get_price
 from frappe.contacts.doctype.address.address import get_address_display, get_default_address, get_company_address
 from frappe.contacts.doctype.contact.contact import get_contact_details, get_default_contact
 from frappe.desk.reportview import get_match_cond, get_filters_cond
-from frappe.utils import nowdate, get_url_to_form, flt, cstr, getdate, get_fullname, now_datetime, parse_val, add_years
+from frappe.utils import nowdate, get_url_to_form, flt, cstr, getdate, get_fullname, now_datetime, parse_val, add_years, add_days
 from frappe.model.mapper import get_mapped_doc
 from frappe.utils.background_jobs import enqueue
 from email.utils import formataddr
 from frappe.core.doctype.communication.email import make
-import datetime
+import datetime 
 from six import itervalues, string_types
 from erpnext.manufacturing.doctype.bom.bom import add_additional_cost
 
@@ -66,6 +66,12 @@ def pi_before_save(self, method):
 	update_serial_no(self, method)
 	tax_breakup_data(self)
 
+def bom_validate(self,method):
+	calculate_total(self)
+	
+def bom_on_update_after_submit(self,method):
+	calculate_total(self)
+
 @frappe.whitelist()
 def IP_before_save(self,method):
 	fetch_item_grouo(self)
@@ -74,7 +80,6 @@ def IP_before_save(self,method):
 def SE_before_save(self,method):
 	update_serial_no(self, method)
 
-@frappe.whitelist()
 def customer_before_save(self,method):
 	update_industry(self)
 
@@ -84,10 +89,7 @@ def update_industry(self):
 		lead = frappe.get_doc("Lead",self.lead_name)
 		lead.industry = self.industry
 		lead.save()
-		
-	frappe.db.commit()
 
-@frappe.whitelist()
 def mr_before_save(self, method):
 	set_default_supplier(self)
 
@@ -274,7 +276,7 @@ def create_sales_order(self):
 	for tax in self.taxes:
 		account_head = tax.account_head.replace(old_abbr, new_abbr)
 		if not db.exists("Account", account_head):
-			frappe.msgprint(_("The Account Head <b>{0}</b> does not exists. Please create Account Head for company <b>{1}</b> and create Purchase Order manually.".format(_(account_head), _(self.customer))), title="Purchase Order could not be created", indicator='red')
+			frappe.throw(_("The Account Head <b>{0}</b> does not exists. Please create Account Head for company <b>{1}</b> and create Purchase Order manually.".format(_(account_head), _(self.customer))), title="Purchase Order could not be created", indicator='red')
 			return
 
 		so.append('taxes',{
@@ -578,7 +580,7 @@ def make_material_request(source_name, target_doc=None):
 
 		if projected_qty < 0:
 			return True
-
+			
 		return False
 
 	doc = get_mapped_doc("Sales Order", source_name, {
@@ -622,6 +624,8 @@ def so_before_save(self, method):
 	tax_breakup_data(self)
 	calculate_combine(self)
 
+def so_before_update_after_submit(self, method):
+	calculate_combine(self)
 
 @frappe.whitelist()
 def qt_before_save(self, method):
@@ -734,6 +738,7 @@ def get_tax_breakup_html(self, hsn=0):
 		headers = get_itemised_tax_breakup_header(self.doctype + " Item", tax_accounts)
 		itemised_tax, itemised_taxable_amount = get_itemised_tax_breakup_data(self)
 
+	#frappe.msgprint(str(itemised_taxable_amount))
 	return frappe.render_template(
 		"eie/templates/includes/tax_breakup_data.html", dict(
 			headers=headers,
@@ -1192,6 +1197,9 @@ def item_before_rename(self,method, *args, **kwargs):
 	if(regex.search(args[1])):
 		frappe.throw("Special characters like <b> < > ? / ; : \' \" { } [ ] | \\ # $ % ^ ( ) * + </b> are not allowed in Item Code! You keep them in Item Name", title="Invalid Characters")
 
+def pe_before_update_after_submit(self, method):
+	validate_outstanding_amount(self)
+
 @frappe.whitelist()
 def pe_on_submit(self, method):
 	validate_outstanding_amount(self)
@@ -1297,10 +1305,19 @@ def docs_before_naming(self, method):
 @frappe.whitelist()
 def update_grand_total(docname):
 	doc = frappe.get_doc("BOM",docname)
-	doc.db_set("grand_total_cost",flt(doc.total_cost + doc.man_power_cost + doc.ancillary_cost + doc.powder_coating + doc.buffing_cost))
-	frappe.db.commit()
+	total_op_cost = doc.man_power_cost + doc.ancillary_cost + doc.powder_coating + doc.buffing_cost + doc.wire_cutting_cost + doc.laser_cutting_cost + doc.shaping_machine_cost + doc.boring_machine_cost + doc.grinding_machine_cost + doc.teflon_coating_cost + doc.cooling_system_fitting_cost + doc.cnc_machining_cost + doc.hard_chrome_plating_cost + doc.chrome_plating_cost
+	doc.db_set('total_operational_cost',flt(total_op_cost))
+	doc.db_set("grand_total_cost",flt(doc.total_cost + doc.total_operational_cost))
+	doc.db_set('per_unit_cost',flt(doc.total_cost + doc.total_operational_cost)/flt(doc.quantity))
 
 
+
+def calculate_total(self):
+	total_op_cost = self.man_power_cost + self.ancillary_cost + self.powder_coating + self.buffing_cost + self.wire_cutting_cost + self.laser_cutting_cost + self.shaping_machine_cost + self.boring_machine_cost + self.grinding_machine_cost + self.teflon_coating_cost + self.cooling_system_fitting_cost + self.cnc_machining_cost + self.hard_chrome_plating_cost + self.chrome_plating_cost
+	self.db_set('total_operational_cost',flt(total_op_cost))
+	self.db_set("grand_total_cost",flt(self.total_cost + self.total_operational_cost))
+	self.db_set('per_unit_cost',flt(self.total_cost + self.total_operational_cost)/flt(self.quantity))
+	
 @frappe.whitelist()
 def calibration_mails_daily():
 	for days in [335, 350, 362]:
@@ -1396,13 +1413,14 @@ def send_calibration_mail(days):
 			frappe.sendmail(recipients=recipients,
 				subject = 'REMINDER FOR CALIBRATION ACTIVITY',
 				sender = sender,
-				cc = ['service.eiepl@gmail.com'],
+				cc = ['abdulbasit.eiepl@gmail.com','service.eiepl@gmail.com'],
 				message = message)
 		except:
 			frappe.publish_realtime(event="cities_progress", message={'status': "FAIL", 'customer': '', 'invoice': ''}, user=frappe.session.user)
 
 def si_validate(self,method):
 	check_item_on_validate(self)
+	hsn_validation(self)
 
 def so_validate(self,method):
 	check_item_on_validate(self)
@@ -1419,6 +1437,11 @@ def check_item_on_validate(self):
 			checked = frappe.db.get_value('Item', row.item_code, 'dont_allow_sales_in_eie')
 			if checked == 1:
 				frappe.throw(_("Sales is not allowed in EIE for {0}".format(row.item_code)))
+
+def hsn_validation(self):
+	for row in self.items:
+		if not row.gst_hsn_code:
+			frappe.throw(_(f"Row:{row.idx} Please define HSN in Item {row.item_code}"))
 
 @frappe.whitelist()
 def send_emd_reminder():
@@ -1485,8 +1508,9 @@ def send_emd_reminder():
 		return message
 
 	data = frappe.get_list("EMD", filters={
-		'due_date': ("<=", frappe.utils.nowdate()),
+		'due_date': ("<=", add_days(nowdate())),
 		'returned': 0,
+		'dont_send_email': 0,
 		'deposit_account': ["like","%EMD Receivable%"],
 		'docstatus': 1
 		},
@@ -1614,10 +1638,12 @@ def send_sd_reminder():
 		return message
 
 	data = frappe.get_list("EMD", filters={
-		'due_date': ("<=", frappe.utils.nowdate()),
+		'due_date': ("<=", add_days(nowdate())),
 		'returned': 0,
+		'dont_send_email': 0,
 		'deposit_account': ["like","%SD Receivable%"],
-		'docstatus': 1
+		'docstatus': 1,
+		'name': 'EMD-00863'
 		},
 		order_by='posting_date',
 		fields=["customer", "address_display", "address_display", "tender_no", "due_date", "amount", "payment_mode", "reference_num", "bank_account", "tender_name", "company", "posting_date", "reference_date", "contact_email"]
@@ -1863,7 +1889,7 @@ def get_transfered_raw_materials(self):
 				if consumed_qty != 0:
 					remaining_qty = consumed_qty - (produced_qty * req_qty_each)
 					exhaust_qty = req_qty_each * produced_qty
-					if remaining_qty > exhaust_qty :
+					if remaining_qty > exhaust_qty and req_qty_each:
 						if (remaining_qty/(req_qty_each * flt(self.fg_completed_qty))) >= 1:
 							qty =0
 						else:
@@ -1955,3 +1981,42 @@ def override_after_insert(self):
 		}
 
 		enqueue_create_notification(self.user, notification_doc)
+
+# def pe_on_submit(self,method):
+# 	validate_outstanding_amount(self)
+
+# def validate_outstanding_amount(self):
+# 	if self.references:
+# 		for row in self.references:
+# 			if row.allocated_amount and row.reference_name:
+# 				#doc = frappe.get_doc(row.reference_doctype,row.reference_name)
+# 				# meta = frappe.get_meta()
+# 				#if hasattr(doc,'outstanding_amount'):
+# 				if frappe.get_meta(row.reference_doctype).get_field('outstanding_amount'):
+# 					#frappe.msgprint('hi')
+# 					outstanding_amount = frappe.db.get_value(row.reference_doctype,row.reference_name,'outstanding_amount')
+# 					if row.allocated_amount > outstanding_amount:
+# 						frappe.throw(_("Row:{0} # You can not allocate more than {1} against {2} <b>{3}</b>").format(row.idx,outstanding_amount,row.reference_doctype,row.reference_name))
+						
+
+def validate_outstanding_amount(self):
+	if self.references:
+		for row in self.references:
+			if row.allocated_amount and row.reference_name and row.reference_doctype not in ['Sales Order', 'Purchase Order']:
+				total_amount = frappe.db.get_value("GL Entry", {'voucher_no':row.reference_name,'party_type':self.party_type,'party':self.party},['sum(credit_in_account_currency-debit_in_account_currency)'])
+				amount_against = frappe.db.get_value("GL Entry",{'against_voucher':row.reference_name,'voucher_no':['!=', row.reference_name], 'voucher_no':['!=', self.name]} ,['sum(credit_in_account_currency-debit_in_account_currency)'])
+				difference_amount = abs(flt(total_amount))-abs(flt(amount_against)) 
+				if difference_amount:
+					#frappe.msgprint(str(abs(amount)))
+					if row.allocated_amount > difference_amount:
+						frappe.throw(_("Row:{0} # You can not allocate more than {1} against {2} <b>{3}</b>").format(row.idx,abs(amount),row.reference_doctype,row.reference_name))
+
+def se_validate(self,method):
+	if self.purpose in ['Repack','Manufacture','Material Issue']:
+		self.get_stock_and_rate()
+		validate_additional_cost(self)
+
+def validate_additional_cost(self):
+	if self.purpose in ['Material Transfer','Material Transfer for Manufacture','Repack','Manufacture'] and self._action == "submit":
+		if round(self.value_difference/100,0) != round(self.total_additional_costs/100,0):
+			frappe.throw("ValuationError: Value difference between incoming and outgoing amount is higher than additional cost")

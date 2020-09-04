@@ -13,5 +13,8 @@
 	],
 	"js/timeline.min.js": [
 		"public/js/frappe/form/footer/timeline.js"
+	],
+	"js/sms_manager.js": [
+		"public/js/sms_manager.js"
 	]
 }

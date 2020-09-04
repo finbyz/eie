@@ -9,7 +9,8 @@ frappe.query_reports["EIE Stock Balance"] = {
 			"label": __("Company"),
 			"fieldtype": "Link",
 			"width": "80",
-			"options": "Company"
+			"options": "Company",
+			"reqd": 1
 		},
 		{
 			"fieldname":"from_date",

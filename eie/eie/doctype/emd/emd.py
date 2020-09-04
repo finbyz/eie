@@ -63,7 +63,6 @@ class EMD(Document):
 		jv.save()
 		self.db_set('journal_entry' , jv.name)
 		jv.submit()
-		frappe.db.commit()
 
 	def cancel_return(self):
 		if self.return_journal_entry:
@@ -73,10 +72,9 @@ class EMD(Document):
 			self.return_date = ''
 			self.db_set('return_journal_entry','')
 			jv.cancel()
-			frappe.db.commit()
 		
 	def on_update_after_submit(self):
-		if self.returned == 1:
+		if self.returned == 1 and not self.return_journal_entry:
 			jv = frappe.new_doc("Journal Entry")
 			jv.posting_date = self.return_date
 			jv.voucher_type = "EMD Entry"
@@ -123,7 +121,6 @@ class EMD(Document):
 			jv.save()
 			self.db_set('return_journal_entry' , jv.name)
 			jv.submit()
-			frappe.db.commit()
 
 	def on_cancel(self):
 		se = frappe.get_doc("Journal Entry",self.journal_entry)
@@ -134,6 +131,5 @@ class EMD(Document):
 
 		se.cancel()
 		self.db_set('journal_entry','')
-		frappe.db.commit()
 		
 

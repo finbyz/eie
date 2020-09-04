@@ -26,7 +26,8 @@ app_include_js = [
 	"assets/js/summernote.min.js",
 	"assets/js/comment_desk.min.js",
 	"assets/js/editor.min.js",
-	"assets/js/timeline.min.js"
+	"assets/js/timeline.min.js",
+	"assets/js/sms_manager.js"
 ]
 # include js, css files in header of web template
 # web_include_css = "/assets/eie/css/eie.css"
@@ -144,8 +145,9 @@ page_js = {"permission-manager" : "public/js/eie.min.js"}
 # 	#"erpnext.accounts.doctype.payment_entry.payment_entry.get_outstanding_reference_documents": "eie.pe_override.get_outstanding_reference_documents",
 # 	#"frappe.email.inbox.create_email_flag_queue": "eie.inbox.create_email_flag_queue",
 # }
-
-
+override_whitelisted_methods = {
+	"frappe.utils.print_format.download_pdf": "eie.print_format.download_pdf"
+}
 
 doc_events = {
 	"Sales Invoice": {
@@ -176,10 +178,12 @@ doc_events = {
 	"Sales Order": {
 		"validate": "eie.api.so_validate",
 		"before_save": "eie.api.so_before_save",
+		"before_update_after_submit": "eie.api.so_before_update_after_submit"
 	},
 	"Stock Entry": {
 		"before_save": "eie.api.SE_before_save",
 		"before_submit": "eie.api.validate_serial_nos",
+		"validate": "eie.api.se_validate"
 	},
 	"Serial No": {
 		"before_save": "eie.api.update_actual_serial_no",
@@ -192,6 +196,10 @@ doc_events = {
 	},
 	"Item": {
 		"before_rename": "eie.api.item_before_rename",
+	},	
+	"BOM": {
+		"validate": "eie.api.bom_validate",
+		"on_update_after_submit": "eie.api.bom_on_update_after_submit"
 	},
 	"Item Price": {
 		"before_save": "eie.api.IP_before_save",
@@ -206,9 +214,13 @@ doc_events = {
 	"Material Request": {
 		"before_save": "eie.api.mr_before_save",
 	},
-	("Sales Invoice", "Purchase Invoice", "Payment Request", "Payment Entry", "Journal Entry", "Material Request", "Purchase Order", "Work Order", "Production Plan", "Stock Entry", "Quotation", "Sales Order", "Delivery Note", "Purchase Receipt", "Packing Slip"): {
-		"before_naming": "eie.api.docs_before_naming",
-	}
+	"Payment Entry": {
+		"before_submit": "eie.api.pe_on_submit",
+		"on_update_after_submit": "eie.api.pe_before_update_after_submit",
+	},
+	# ("Sales Invoice", "Purchase Invoice", "Payment Request", "Payment Entry", "Journal Entry", "Material Request", "Purchase Order", "Work Order", "Production Plan", "Stock Entry", "Quotation", "Sales Order", "Delivery Note", "Purchase Receipt", "Packing Slip"): {
+	# 	"before_naming": "eie.api.docs_before_naming",
+	# }
 }
 
 scheduler_events = {
@@ -224,8 +236,8 @@ scheduler_events = {
 }
 #import frappe
 
-# from frappe.social.doctype.energy_point_log.energy_point_log import EnergyPointLog
-# from eie.override_defaults import revert as my_revert
-# from eie.override_defaults import override_after_insert
-# EnergyPointLog.revert = my_revert
-# EnergyPointLog.after_insert = override_after_insert
+from frappe.social.doctype.energy_point_log.energy_point_log import EnergyPointLog
+from eie.override_defaults import revert as my_revert
+from eie.override_defaults import override_after_insert
+EnergyPointLog.revert = my_revert
+EnergyPointLog.after_insert = override_after_insert

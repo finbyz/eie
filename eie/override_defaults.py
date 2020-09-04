@@ -1,5 +1,5 @@
 import frappe
-from frappe.social.doctype.energy_point_log.energy_point_log import get_alert_dict
+from frappe.social.doctype.energy_point_log.energy_point_log import get_alert_dict,get_notification_message
 
 def override_after_insert(self):
 	from frappe.desk.doctype.notification_log.notification_log import enqueue_create_notification

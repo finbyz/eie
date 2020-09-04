@@ -145,7 +145,7 @@ def get_conditions(filters):
 			where wh.warehouse_type = '%s' and sle.warehouse = wh.name)"%(filters.get("warehouse_type"))
 	
 	if filters.get('company'):
-		conditions += " and sle.company = '%s' " % frappe.db.escape(filters.get('company'))
+		conditions += " and sle.company = %s " % frappe.db.escape(filters.get('company'))
 
 	return conditions
 
@@ -292,10 +292,11 @@ def get_item_reorder_details(items):
 	return dict((d.parent + d.warehouse, d) for d in item_reorder_details)
 
 def validate_filters(filters):
-	if not (filters.get("item_code") or filters.get("warehouse")):
-		sle_count = flt(frappe.db.sql("""select count(name) from `tabStock Ledger Entry`""")[0][0])
-		if sle_count > 500000:
-			frappe.throw(_("Please set filter based on Item or Warehouse"))
+	# if not (filters.get("item_code") or filters.get("warehouse")):
+		# sle_count = flt(frappe.db.sql("""select count(name) from `tabStock Ledger Entry`""")[0][0])
+		# if sle_count > 500000:
+			# frappe.throw(_("Please set filter based on Item or Warehouse"))
+	pass
 
 def get_variants_attributes():
 	'''Return all item variant attributes.'''
