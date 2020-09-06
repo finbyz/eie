@@ -2003,13 +2003,20 @@ def validate_outstanding_amount(self):
 	if self.references:
 		for row in self.references:
 			if row.allocated_amount and row.reference_name and row.reference_doctype not in ['Sales Order', 'Purchase Order']:
-				total_amount = frappe.db.get_value("GL Entry", {'voucher_no':row.reference_name,'party_type':self.party_type,'party':self.party},['sum(credit_in_account_currency-debit_in_account_currency)'])
-				amount_against = frappe.db.get_value("GL Entry",{'against_voucher':row.reference_name,'voucher_no':['!=', row.reference_name], 'voucher_no':['!=', self.name]} ,['sum(credit_in_account_currency-debit_in_account_currency)'])
+				total = frappe.db.sql("""
+				select sum(credit_in_account_currency-debit_in_account_currency)
+				from `tabGL Entry`
+				where 
+					docstatus=1 and voucher_no ='{0}' and party_type ='{1}' and party='{2}' and (against_voucher is Null or against_voucher='{0}')
+				""".format(row.reference_name,self.party_type,self.party))
+				if total:
+					total_amount = total[0][0]
+				else:
+					total_amount = 0
+				amount_against = frappe.db.get_value("GL Entry",{'against_voucher':row.reference_name,'voucher_no':['not in', [row.reference_name,self.name]]} ,['sum(credit_in_account_currency-debit_in_account_currency)'])
 				difference_amount = abs(flt(total_amount))-abs(flt(amount_against)) 
-				if difference_amount:
-					#frappe.msgprint(str(abs(amount)))
-					if row.allocated_amount > difference_amount:
-						frappe.throw(_("Row:{0} # You can not allocate more than {1} against {2} <b>{3}</b>").format(row.idx,abs(amount),row.reference_doctype,row.reference_name))
+				if flt(row.allocated_amount) > flt(difference_amount):
+					frappe.throw(_("Row:{0} # You can not allocate more than {1} against {2} <b>{3}</b>").format(row.idx,abs(difference_amount),row.reference_doctype,row.reference_name))
 
 def se_validate(self,method):
 	if self.purpose in ['Repack','Manufacture','Material Issue']:
