@@ -59,8 +59,32 @@ def get_columns():
 			"width": 80
 		},
 		{
+			"fieldname": "raw_material_cost",
+			"label": _("Raw Material Cost"),
+			"fieldtype": "Currency",
+			"width": 80
+		},
+		{
+			"fieldname": "grand_total_cost",
+			"label": _("Grand Total Cost"),
+			"fieldtype": "Currency",
+			"width": 80
+		},
+		{
+			"fieldname": "grand_total_final",
+			"label": _("Grand Total Final"),
+			"fieldtype": "Currency",
+			"width": 80
+		},
+		{
 			"fieldname": "selling_rate",
 			"label": _("Selling Rate"),
+			"fieldtype": "Currency",
+			"width": 100
+		},
+		{
+			"fieldname": "total_selling",
+			"label": _("Total Selling"),
 			"fieldtype": "Currency",
 			"width": 100
 		},
@@ -95,7 +119,7 @@ def get_data(filters):
 	conditions = get_conditions(filters)
 	data = frappe.db.sql("""
 		select wo.name, wo.production_item, wo.bom_no, wo.qty, wo.produced_qty, wo.planned_start_date, wo.owner, wo.status,
-		wo.assign_to, bom.per_unit_cost as bom_rate, e.employee_name as assign_person_name, ip.price_list_rate as selling_rate,
+		wo.assign_to, bom.per_unit_cost as bom_rate, bom.raw_material_cost, bom.grand_total_cost, (wo.produced_qty*bom.grand_total_cost) as grand_total_final , (wo.produced_qty* ip.price_list_rate) as total_selling ,e.employee_name as assign_person_name, (ip.price_list_rate) as selling_rate,
 		(sum(sed.valuation_rate*sed.qty)/sum(sed.qty)) as manufacturing_rate, se.posting_date
 		from `tabWork Order` as wo 
 		left join `tabBOM` as bom on bom.name = wo.bom_no 

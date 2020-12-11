@@ -43,6 +43,9 @@ page_js = {"permission-manager" : "public/js/eie.min.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
+doctype_js = {
+	"Sales Order": "public/js/doctype_js/sales_order.js"
+}
 # Home Pages
 # ----------
 
