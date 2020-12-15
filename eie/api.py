@@ -701,6 +701,8 @@ def po_before_save(self, method):
 		if row.rate and not row.original_rate:
 			row.original_rate = row.rate
 
+		if not row.cost_center.find(frappe.db.get_value("Company",self.company,'abbr')) > 0:
+			frappe.throw("Row {}: Cost Center {} does not belong to Company {}".format(row.idx,row.cost_center,self.company))
 	tax_breakup_data(self)
 	sales_order_ref(self)
 
