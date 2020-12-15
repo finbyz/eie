@@ -510,20 +510,63 @@ def filter_installation_note(doctype, txt, searchfield, start, page_len, filters
 					"page_len": page_len
 				} , as_dict=as_dict)
 
+# def new_item_query(doctype, txt, searchfield, start, page_len, filters, as_dict=False):
+# 	conditions = []
 
+# 	return db.sql("""
+# 		select
+# 			tabItem.name, tabItem.item_other_names, tabItem.item_group
+# 		from
+# 			tabItem
+# 		where 
+# 			tabItem.docstatus < 2
+# 			and tabItem.has_variants=0
+# 			and tabItem.disabled=0
+# 			and (tabItem.end_of_life > %(today)s or ifnull(tabItem.end_of_life, '0000-00-00')='0000-00-00')
+# 			and (tabItem.`{key}` LIKE %(txt)s
+# 				or tabItem.item_name LIKE %(txt)s
+# 				or tabItem.item_group LIKE %(txt)s
+# 				or tabItem.item_other_names LIKE %(txt)s
+# 				or tabItem.barcode LIKE %(txt)s)
+# 			{fcond} {mcond}
+		
+# 		order by
+# 			default_selection desc,
+# 			if(locate(%(_txt)s, tabItem.name), locate(%(_txt)s, tabItem.name), 99999),
+# 			if(locate(%(_txt)s, item_name), locate(%(_txt)s, item_name), 99999)
+			
+# 		limit %(start)s, %(page_len)s """.format(
+# 			key=searchfield,
+# 			fcond=get_filters_cond(doctype, filters, conditions).replace('%', '%%'),
+# 			mcond=get_match_cond(doctype).replace('%', '%%')),
+# 			{
+# 				"today": nowdate(),
+# 				"txt": "%s%%" % txt,
+# 				"_txt": txt.replace("%", ""),
+# 				"start": start,
+# 				"page_len": page_len
+# 			}, as_dict=as_dict)
+
+@frappe.whitelist()
 def new_item_query(doctype, txt, searchfield, start, page_len, filters, as_dict=False):
 	conditions = []
-
 	return db.sql("""
 		select
-			tabItem.name, tabItem.item_other_names, tabItem.item_group
+			tabItem.name, tabItem.item_other_names, tabItem.item_group, if((bin.actual_qty>0),CONCAT_WS(':',bin.company,bin.actual_qty),0)
 		from
 			tabItem
+
+		LEFT JOIN (
+		  SELECT b.item_code,round(sum(b.actual_qty),2) as actual_qty, w.company
+		  FROM `tabBin` as b
+		  LEFT JOIN `tabWarehouse` as w ON w.name = warehouse 
+		  GROUP BY b.item_code,w.company
+		) as bin ON (tabItem.name = bin.item_code and tabItem.is_stock_item = 1) 			
+			
 		where 
 			tabItem.docstatus < 2
 			and tabItem.has_variants=0
 			and tabItem.disabled=0
-			and (tabItem.end_of_life > %(today)s or ifnull(tabItem.end_of_life, '0000-00-00')='0000-00-00')
 			and (tabItem.`{key}` LIKE %(txt)s
 				or tabItem.item_name LIKE %(txt)s
 				or tabItem.item_group LIKE %(txt)s
@@ -531,21 +574,23 @@ def new_item_query(doctype, txt, searchfield, start, page_len, filters, as_dict=
 				or tabItem.barcode LIKE %(txt)s)
 			{fcond} {mcond}
 		order by
+			bin.actual_qty desc,
 			default_selection desc,
-			if(locate(%(_txt)s, name), locate(%(_txt)s, name), 99999),
-			if(locate(%(_txt)s, item_name), locate(%(_txt)s, item_name), 99999) 
+			if(locate(%(_txt)s, tabItem.name), locate(%(_txt)s, tabItem.name), 99999),
+			if(locate(%(_txt)s, item_name), locate(%(_txt)s, item_name), 99999)
+			
 		limit %(start)s, %(page_len)s """.format(
 			key=searchfield,
 			fcond=get_filters_cond(doctype, filters, conditions).replace('%', '%%'),
 			mcond=get_match_cond(doctype).replace('%', '%%')),
 			{
-				"today": nowdate(),
 				"txt": "%s%%" % txt,
 				"_txt": txt.replace("%", ""),
 				"start": start,
 				"page_len": page_len
 			}, as_dict=as_dict)
 
+@frappe.whitelist()
 def filter_po_item(doctype, txt, searchfield, start, page_len, filters, as_dict=False):
 	data = frappe.get_list("Product Bundle", fields='new_item_code')
 	item_list = [d.new_item_code for d in data]
@@ -1200,11 +1245,12 @@ def item_before_rename(self,method, *args, **kwargs):
 		frappe.throw("Special characters like <b> < > ? / ; : \' \" { } [ ] | \\ # $ % ^ ( ) * + </b> are not allowed in Item Code! You keep them in Item Name", title="Invalid Characters")
 
 def pe_before_update_after_submit(self, method):
-	validate_outstanding_amount(self)
+	pass
+	#validate_outstanding_amount(self)
 
 @frappe.whitelist()
 def pe_on_submit(self, method):
-	validate_outstanding_amount(self)
+	#validate_outstanding_amount(self)
 	
 	attachments = []
 	recipients = []
@@ -1395,7 +1441,7 @@ def send_calibration_mail(days):
 		si_dict.setdefault(key, [])
 		si_dict[key].append(row)
 
-	sender = formataddr(("Calibration Dept - EIE Instruments Pvt Ltd", "csc.eiepl@gmail.com"))
+	sender = formataddr(("Abdulbasit", "abdulbasit.eiepl@gmail.com"))
 
 	for (invoice_no, person_name, company_name, contact_mobile, contact_email, posting_date), items in si_dict.items():
 		table = ""
@@ -1574,6 +1620,25 @@ def send_emd_reminder():
 			continue
 	pass
 
+@frappe.whitelist()
+def validate_material_request(sales_order):
+	try:
+		material_request = frappe.db.sql(f"""
+		SELECT
+			parent
+		FROM
+			`tabMaterial Request Item`
+		WHERE
+			parenttype="Material Request" and sales_order = '{sales_order}'
+	""")
+	except KeyError:
+		material_request = None
+	if material_request:
+		status = frappe.db.get_value("Material Request",material_request[0][0],"docstatus")
+		return status
+		if status != 2:
+			frappe.throw(_("Cancel Material Request of this Sales Order"))
+			return "Cancel Material Request of this Sales Order"
 
 @frappe.whitelist()
 def send_sd_reminder():
@@ -2023,9 +2088,61 @@ def validate_outstanding_amount(self):
 def se_validate(self,method):
 	if self.purpose in ['Repack','Manufacture','Material Issue']:
 		self.get_stock_and_rate()
-		validate_additional_cost(self)
+	validate_additional_cost(self)
 
 def validate_additional_cost(self):
 	if self.purpose in ['Material Transfer','Material Transfer for Manufacture','Repack','Manufacture'] and self._action == "submit":
 		if round(self.value_difference/100,0) != round(self.total_additional_costs/100,0):
 			frappe.throw("ValuationError: Value difference between incoming and outgoing amount is higher than additional cost")
+
+
+def get_full_path(doc):
+	"""Returns file path from given file name"""
+
+	file_path = doc.file_url or doc.file_name
+
+	if "/" not in file_path:
+		file_path = "/files/" + file_path
+
+	if file_path.startswith("/private/files/"):
+		file_path = get_files_path(*file_path.split("/private/files/", 1)[1].split("/"), is_private=1)
+
+	elif file_path.startswith("/files/"):
+		file_path = get_files_path(*file_path.split("/files/", 1)[1].split("/"))
+
+	elif file_path.startswith("http"):
+		pass
+
+	elif not doc.file_url:
+		frappe.throw(_("There is some problem with the file url: {0}").format(file_path))
+
+	return file_path
+
+import os
+from frappe.utils import call_hook_method, cint, cstr, encode, get_files_path
+def change_url():
+	data =frappe.get_list("File",{'is_private':0,'attached_to_doctype':['!=','Item']})
+	for idx,d in enumerate(data,start=0):
+		doc = frappe.get_doc("File",d.name)
+
+		if doc.file_url and doc.attached_to_doctype != 'Notification Control':
+			path = get_full_path(doc)
+			if os.path.exists(path):
+				if doc.attached_to_name:
+					if frappe.db.exists(doc.attached_to_doctype,doc.attached_to_name):
+						print(idx, d.name)
+						doc.file_name = doc.file_url.split('/')[-1]
+						doc.is_private = 1
+						doc.save()
+						if idx%50 == 0:
+							frappe.db.commit()
+							print('commit' + str(idx), str(d.name))
+				elif not doc.attached_to_name:
+					print(idx, d.name)
+					doc.file_name = doc.file_url.split('/')[-1]
+					doc.is_private = 1
+					doc.save()
+					if idx%50 == 0:
+						frappe.db.commit()
+						print('commit' + str(idx), str(d.name))
+

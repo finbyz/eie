@@ -31,7 +31,7 @@ frappe.query_reports["EIE GSTR-1"] = {
 			"label": __("From Date"),
 			"fieldtype": "Date",
 			"reqd": 1,
-			"default": frappe.datetime.add_months(frappe.datetime.get_today(), -3),
+			"default": frappe.datetime.add_months(frappe.datetime.get_today(), -1),
 			"width": "80"
 		},
 		{

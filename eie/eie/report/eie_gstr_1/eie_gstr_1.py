@@ -1,4 +1,4 @@
-# Copyright (c) 2013, Frappe Technologies Pvt. Ltd. and contributors
+# Copyright (c) 2020, Finbyz Tech Pvt. Ltd.
 # For license information, please see license.txt
 
 from __future__ import unicode_literals
@@ -57,8 +57,10 @@ class Gstr1Report(object):
 		return self.columns, self.data
 
 	def get_data(self):
-		if self.filters.get("type_of_business") in  ("B2C Small", "B2C Large"):
-			self.get_b2c_data()
+		if self.filters.get("type_of_business") == "B2C Small":
+			self.get_b2c_data("B2C Small")
+		elif self.filters.get("type_of_business") == "B2C Large":
+			self.get_b2c_data("B2C Large")		
 		else:
 			for inv, items_based_on_rate in self.items_based_on_tax_rate.items():
 				invoice_details = self.invoices.get(inv)
@@ -72,28 +74,43 @@ class Gstr1Report(object):
 					if taxable_value:
 						self.data.append(row)
 
-	def get_b2c_data(self):
+	def get_b2c_data(self,type_of_business):
 		b2cs_output = {}
-
 		for inv, items_based_on_rate in self.items_based_on_tax_rate.items():
 			invoice_details = self.invoices.get(inv)
 			for rate, items in items_based_on_rate.items():
 				place_of_supply = invoice_details.get("place_of_supply")
 				ecommerce_gstin =  invoice_details.get("ecommerce_gstin")
 
-				b2cs_output.setdefault((rate, place_of_supply, ecommerce_gstin),{
-					"place_of_supply": "",
-					"ecommerce_gstin": "",
-					"rate": "",
-					"taxable_value": 0,
-					"cess_amount": 0,
-					"type": "",
-					"invoice_number": invoice_details.get("invoice_number"),
-					"posting_date": invoice_details.get("posting_date"),
-					"invoice_value": invoice_details.get("base_grand_total"),
-				})
+				if type_of_business == "B2C Large":
+					b2cs_output.setdefault((invoice_details.get("invoice_number"),rate, place_of_supply, ecommerce_gstin),{
+						"place_of_supply": "",
+						"ecommerce_gstin": "",
+						"rate": "",
+						"taxable_value": 0,
+						"cess_amount": 0,
+						"type": "",
+						"invoice_number": invoice_details.get("invoice_number"),
+						"posting_date": invoice_details.get("posting_date"),
+						"invoice_value": invoice_details.get("base_grand_total"),
+					})
 
-				row = b2cs_output.get((rate, place_of_supply, ecommerce_gstin))
+					row = b2cs_output.get((invoice_details.get("invoice_number"),rate, place_of_supply, ecommerce_gstin))
+				
+				else:
+					b2cs_output.setdefault((rate, place_of_supply, ecommerce_gstin),{
+						"place_of_supply": "",
+						"ecommerce_gstin": "",
+						"rate": "",
+						"taxable_value": 0,
+						"cess_amount": 0,
+						"type": "",
+						"invoice_number": invoice_details.get("invoice_number"),
+						"posting_date": invoice_details.get("posting_date"),
+						"invoice_value": invoice_details.get("base_grand_total"),
+					})
+
+					row = b2cs_output.get((rate, place_of_supply, ecommerce_gstin))
 				row["place_of_supply"] = place_of_supply
 				row["ecommerce_gstin"] = ecommerce_gstin
 				row["rate"] = rate
@@ -626,7 +643,8 @@ def get_b2b_json(res, gstin):
 					frappe.bold(invoice[0]['invoice_number'])))
 
 			inv_item = get_basic_invoice_detail(invoice[0])
-			inv_item["pos"] = "%02d" % int(invoice[0]["place_of_supply"].split('-')[0])
+			if invoice[0]["place_of_supply"]:
+				inv_item["pos"] = "%02d" % int(invoice[0]["place_of_supply"].split('-')[0])
 			inv_item["rchrg"] = invoice[0]["reverse_charge"]
 			inv_item["inv_typ"] = inv_type.get(invoice[0].get("gst_category", ""),"")
 

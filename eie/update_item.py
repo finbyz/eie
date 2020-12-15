@@ -2,7 +2,7 @@ import frappe
 from frappe import _
 from frappe.utils import flt, cint
 import json
-from erpnext.controllers.accounts_controller import set_sales_order_defaults,set_purchase_order_defaults,check_and_delete_children
+from erpnext.controllers.accounts_controller import set_sales_order_defaults,set_purchase_order_defaults,validate_and_delete_children
 
 
 @frappe.whitelist()
@@ -33,7 +33,7 @@ def update_child_qty_rate(parent_doctype, trans_items, parent_doctype_name, chil
 	sales_doctypes = ['Sales Order', 'Sales Invoice', 'Delivery Note', 'Quotation']
 	parent = frappe.get_doc(parent_doctype, parent_doctype_name)
 
-	check_and_delete_children(parent, data)
+	validate_and_delete_children(parent, data)
 
 	for d in data:
 		new_child_flag = False

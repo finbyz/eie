@@ -54,18 +54,19 @@ def create_email_flag_queue(names, action):
 
 @frappe.whitelist()
 def change_email_queue_status():
+	pass
 	# from frappe.email.doctype.email_queue.email_queue import retry_sending
-	from frappe.email.queue import send_one
+	# from frappe.email.queue import send_one
 
-	eqs = frappe.get_list("Email Queue", filters={'status': "Sending"})
+	# eqs = frappe.get_list("Email Queue", filters={'status': "Sending"})
 
-	if eqs:
-		for d in eqs:
-			# retry_sending(d.name)
-			# send_one(d.name, now=True)
-			doc = frappe.get_doc("Email Queue", d.name)
-			doc.status = "Not Sent"
-			doc.save(ignore_permissions=True)
-			send_one(doc.name, now=True)
-		else:
-			frappe.db.commit()
+	# if eqs:
+	# 	for d in eqs:
+	# 		# retry_sending(d.name)
+	# 		# send_one(d.name, now=True)
+	# 		doc = frappe.get_doc("Email Queue", d.name)
+	# 		doc.status = "Not Sent"
+	# 		doc.save(ignore_permissions=True)
+	# 		send_one(doc.name, now=True)
+	# 	else:
+	# 		frappe.db.commit()
