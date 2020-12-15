@@ -20,16 +20,26 @@ def execute(filters=None):
 	
 def get_columns():
 	columns = [
-		_("Ref DocType") + ":Data:100",
-		_("Ref DocName") + ":Dynamic Link/"+_("Ref DocType")+":100",
-		_("Next Contact Date") + ":Date:120",
-		_("Date") + ":Date:120",
-		_("Caller") + "::110",
-		_("Organization") + "::180",
-		_("Person") + "::120",
-		_("Comment") + ":Data:400",
-		_("Mobile") + "::100",
-		_("User") + ":Link/User:100",
+		{ "label": _("Ref DocType"),"fieldname": "Ref DocType","fieldtype": "Data","width": 100},
+		{ "label": _("Ref DocName"),"fieldname": "Ref DocName","fieldtype": "Dynamic Link","options": "Ref DocType","width": 100},
+		{ "label": _("Next Contact Date"),"fieldname": "Next Contact Date","fieldtype": "Date","width": 120},
+		{ "label": _("Date"),"fieldname": "Date","fieldtype": "Date","width": 120},
+		{ "label": _("Caller"),"fieldname": "Caller","fieldtype": "Data","width": 110},
+		{ "label": _("Organization"),"fieldname": "Organization","fieldtype": "Data","width": 180},
+		{ "label": _("Person"),"fieldname": "Person","fieldtype": "Data","width": 120},
+		{ "label": _("Comment"),"fieldname": "Comment","fieldtype": "Data","width": 400},
+		{ "label": _("Mobile"),"fieldname": "Mobile","fieldtype": "Data","width": 100},
+		{ "label": _("User"),"fieldname": "User","fieldtype": "Link","options":"User","width": 100},
+		# _("Ref DocType") + ":Data:100",
+		# _("Ref DocName") + ":Dynamic Link/"+_("Ref DocType")+":100",
+		# _("Next Contact Date") + ":Date:120",
+		# _("Date") + ":Date:120",
+		# _("Caller") + "::110",
+		# _("Organization") + "::180",
+		# _("Person") + "::120",
+		# _("Comment") + ":Data:400",
+		# _("Mobile") + "::100",
+		# _("User") + ":Link/User:100",
 	]
 	return columns
 

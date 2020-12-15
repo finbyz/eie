@@ -590,6 +590,7 @@ def new_item_query(doctype, txt, searchfield, start, page_len, filters, as_dict=
 				"page_len": page_len
 			}, as_dict=as_dict)
 
+@frappe.whitelist()
 def filter_po_item(doctype, txt, searchfield, start, page_len, filters, as_dict=False):
 	data = frappe.get_list("Product Bundle", fields='new_item_code')
 	item_list = [d.new_item_code for d in data]

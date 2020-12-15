@@ -242,5 +242,5 @@ scheduler_events = {
 from frappe.social.doctype.energy_point_log.energy_point_log import EnergyPointLog
 from eie.override_defaults import revert as my_revert
 from eie.override_defaults import override_after_insert
-EnergyPointLog.revert = my_revert
-EnergyPointLog.after_insert = override_after_insert
+#EnergyPointLog.revert = my_revert
+#EnergyPointLog.after_insert = override_after_insert
