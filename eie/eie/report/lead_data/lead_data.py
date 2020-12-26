@@ -13,32 +13,50 @@ def execute(filters=None):
 	return columns, data
 
 def get_columns():
-	columns = [_("Lead") + ":Link/Lead:100",  
-				_("Name") + "::120",
-				_("Company Name") + "::120",
-				_("Status") + "::80",
-				_("Address Line 1") + "::100",
-				_("Address Line 2") + "::100",
-				# _("Address") + ":Link/Address:130", #Address
-				_("State") + "::100",
-				_("City") + "::100", 
-				_("Pincode") + "::70",
-				_("Country") + ":100",  
-				_("Phone") + ":100", 
-				_("Mobile No") + "::100",
-				_("Email Id") + "::120",
-				_("Lead Owmer") + "::120",
-				_("Source") + "::120",
-				_("Territory") + "::120",
-				_("Owner") + ":Link/User:120"
+	columns = [
+		{ "label": _("Lead"),"fieldname": "Lead","fieldtype": "Link","options":"Lead","width": 100},
+		{ "label": _("Name"),"fieldname": "Name","fieldtype": "Data","width": 120},
+		{ "label": _("Company Name"),"fieldname": "Company Name","fieldtype": "Data","width": 120},
+		{ "label": _("Status"),"fieldname": "Status","fieldtype": "Data","width": 80},
+		{ "label": _("Address Line 1"),"fieldname": "Address Line 1","fieldtype": "Data","width": 100},
+		{ "label": _("Address Line 2"),"fieldname": "Address Line 2","fieldtype": "Data","width": 100},
+		{ "label": _("State"),"fieldname": "State","fieldtype": "Data","width": 100},
+		{ "label": _("City"),"fieldname": "City","fieldtype": "Data","width": 100},
+		{ "label": _("Pincode"),"fieldname": "Pincode","fieldtype": "Data","width": 70},
+		{ "label": _("Country"),"fieldname": "Country","fieldtype": "Data","width": 100},
+		{ "label": _("Phone"),"fieldname": "Phone","fieldtype": "Data","width": 100},
+		{ "label": _("Mobile No"),"fieldname": "Mobile No","fieldtype": "Data","width": 100},
+		{ "label": _("Email Id"),"fieldname": "Email Id","fieldtype": "Data","width": 120},
+		{ "label": _("Lead Owner"),"fieldname": "Lead Owner","fieldtype": "Data","width": 120},
+		{ "label": _("Source"),"fieldname": "Source","fieldtype": "Data","width": 120},
+		{ "label": _("Territory"),"fieldname": "Territory","fieldtype": "Data","width": 120},
+		{ "label": _("Owner"),"fieldname": "Owner","fieldtype": "Link","options":"User","width": 120}
+				# _("Lead") + ":Link/Lead:100",  
+				# _("Name") + "::120",
+				# _("Company Name") + "::120",
+				# _("Status") + "::80",
+				# _("Address Line 1") + "::100",
+				# _("Address Line 2") + "::100",
+				# # _("Address") + ":Link/Address:130", #Address
+				# _("State") + "::100",
+				# _("City") + "::100", 
+				# _("Pincode") + "::70",
+				# _("Country") + ":100",  
+				# _("Phone") + ":100", 
+				# _("Mobile No") + "::100",
+				# _("Email Id") + "::120",
+				# _("Lead Owmer") + "::120",
+				# _("Source") + "::120",
+				# _("Territory") + "::120",
+				# _("Owner") + ":Link/User:120"
 
 	]
 	return columns
 
 def get_data(filters):
 	where_clause = ''
-	where_clause+=filters.name and " and Lead = '%s' " %filters.name or ""
-	where_clause+=filters.state and " and State = '%s' " %filters.state
+	where_clause+=filters.name and " and `tabLead`.name = '%s' " %filters.name or ""
+	where_clause+=filters.state and " and `tabAddress`.state = '%s' " %filters.state
 	
 	return frappe.db.sql("""
 		SELECT

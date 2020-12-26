@@ -563,7 +563,7 @@ def new_item_query(doctype, txt, searchfield, start, page_len, filters, as_dict=
 	conditions = []
 	return db.sql("""
 		select
-			tabItem.name, tabItem.item_other_names, tabItem.item_group, if((bin.actual_qty>0),CONCAT_WS(':',bin.company,bin.actual_qty),0)
+			tabItem.name, tabItem.item_other_names,<img src='/files/nav-pharma.jpg'> as image,tabItem.item_group, if((bin.actual_qty>0),CONCAT_WS(':',bin.company,bin.actual_qty),0)
 		from
 			tabItem
 
@@ -759,6 +759,8 @@ def po_before_save(self, method):
 		if not row.cost_center.find(frappe.db.get_value("Company",self.company,'abbr')) > 0:
 			frappe.throw("Row {}: Cost Center {} does not belong to Company {}".format(row.idx,row.cost_center,self.company))	
 
+		if not row.cost_center.find(frappe.db.get_value("Company",self.company,'abbr')) > 0:
+			frappe.throw("Row {}: Cost Center {} does not belong to Company {}".format(row.idx,row.cost_center,self.company))
 	tax_breakup_data(self)
 	sales_order_ref(self)
 
