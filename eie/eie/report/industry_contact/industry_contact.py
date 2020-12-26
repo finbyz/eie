@@ -14,14 +14,22 @@ def execute(filters=None):
 
 def get_columns():
 	return [
-		_("Full Name") + ":Data:150",
-		_("Email ID") + ":Data:150",
-		_("Phone No") + ":Data:120",
-		_("Mobile No") + ":Data:120",
-		_("Customer Name") + ":Data:150",
-		_("Industry") + ":Link/Industry Type:120",
-		_("Referece DocType") + ":Data:120",
-		_("Referece Name") + ":Dynamic Link/" + _("Referece DocType")+":120",
+		# _("Full Name") + ":Data:150",
+		# _("Email ID") + ":Data:150",
+		# _("Phone No") + ":Data:120",
+		# _("Mobile No") + ":Data:120",
+		# _("Customer Name") + ":Data:150",
+		# _("Industry") + ":Link/Industry Type:120",
+		# _("Referece DocType") + ":Data:120",
+		# _("Referece Name") + ":Dynamic Link/" + _("Referece DocType")+":120",
+		{ "label": _("Full Name"),"fieldname": "Full Name","fieldtype": "Data","width": 150},
+		{ "label": _("Email ID"),"fieldname": "Email ID","fieldtype": "Data","width": 150},
+		{ "label": _("Phone No"),"fieldname": "Phone No","fieldtype": "Data","width": 120},
+		{ "label": _("Mobile No"),"fieldname": "Mobile No","fieldtype": "Data","width": 120},
+		{ "label": _("Customer Name"),"fieldname": "Customer Name","fieldtype": "Data","width": 150},
+		{ "label": _("Industry"),"fieldname": "Industry","fieldtype": "Link","options":"Industry Type","width": 120},
+		{ "label": _("Referece DocType"),"fieldname": "Referece DocType","fieldtype": "Data","width": 120},
+		{ "label": _("Referece Name"),"fieldname": "Referece Name","fieldtype": "Dynamic Link","options":"Referece DocType","width": 120},
 	]
 
 def get_data(filters):

@@ -170,6 +170,10 @@ def create_purchase_invoice(self):
 	pi.bill_date = self.posting_date
 	pi.currency = self.currency
 	pi.update_stock = self.update_stock
+	if self.cost_center:
+		pi.cost_center = self.cost_center.replace(old_abbr, new_abbr)
+	else:
+		pi.cost_center = frappe.db.get_value("Company",self.customer,"cost_center")
 
 	for item in self.items:
 		pi.append('items', {
@@ -186,9 +190,11 @@ def create_purchase_invoice(self):
 			'purchase_order': frappe.db.get_value("Purchase Order Item", item.purchase_order_item, 'parent'),
 			'po_detail': item.purchase_order_item,
 			'warehouse': 'Stores - %s' % new_abbr,
+			'cost_center': item.cost_center.replace(old_abbr, new_abbr)
 		})
 
-	pi.taxes_and_charges = self.taxes_and_charges
+	if self.taxes_and_charges:
+		pi.taxes_and_charges = self.taxes_and_charges.replace(old_abbr, new_abbr)
 	pi.shipping_rule = self.shipping_rule
 	pi.shipping_address = self.shipping_address_name
 	pi.shipping_address_display = self.shipping_address
@@ -205,6 +211,7 @@ def create_purchase_invoice(self):
 			'row_id': tax.row_id,
 			'account_head': account_head,
 			'description': tax.description.replace(old_abbr, ''),
+			'cost_center': tax.cost_center.replace(old_abbr, new_abbr),
 			'rate': tax.rate,
 			'tax_amount': tax.tax_amount,
 			'total': tax.total
@@ -213,7 +220,6 @@ def create_purchase_invoice(self):
 	pi.save()
 	self.db_set('purchase_invoice', pi.name)
 	pi.submit()
-	db.commit()
 
 	url = get_url_to_form("Purchase Invoice", pi.name)
 	frappe.msgprint(_("Purchase Invoice <b><a href='{url}'>{name}</a></b> has been created successfully!".format(url=url, name=pi.name)), title="Purchase Invoice Created", indicator="green")
@@ -255,7 +261,7 @@ def create_sales_order(self):
 
 	old_abbr = db.get_value("Company", self.company, 'abbr')
 	new_abbr = db.get_value("Company", self.supplier, 'abbr')
-
+	
 	for item in self.items:
 		so.append('items',{
 			'item_code': item.item_code,
@@ -270,8 +276,12 @@ def create_sales_order(self):
 			'discount_per': item.discount_per,
 			'warehouse': 'Stores - %s' % new_abbr,
 			'purchase_order_item': item.name,
-			'actual_customer': item.actual_customer
+			'actual_customer': item.actual_customer,
+			'cost_center': item.cost_center.replace(old_abbr, new_abbr)
 		})
+
+	if self.taxes_and_charges:
+		so.taxes_and_charges = self.taxes_and_charges.replace(old_abbr, new_abbr)
 
 	for tax in self.taxes:
 		account_head = tax.account_head.replace(old_abbr, new_abbr)
@@ -283,6 +293,7 @@ def create_sales_order(self):
 			'charge_type': tax.charge_type,
 			'account_head': account_head,
 			'description': tax.description.replace(old_abbr, ''),
+			'cost_center': tax.cost_center.replace(old_abbr, new_abbr),
 			'rate': tax.rate,
 		})
 
@@ -745,6 +756,8 @@ def po_before_save(self, method):
 
 		if row.rate and not row.original_rate:
 			row.original_rate = row.rate
+		if not row.cost_center.find(frappe.db.get_value("Company",self.company,'abbr')) > 0:
+			frappe.throw("Row {}: Cost Center {} does not belong to Company {}".format(row.idx,row.cost_center,self.company))	
 
 	tax_breakup_data(self)
 	sales_order_ref(self)
