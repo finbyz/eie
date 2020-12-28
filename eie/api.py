@@ -563,7 +563,7 @@ def new_item_query(doctype, txt, searchfield, start, page_len, filters, as_dict=
 	conditions = []
 	return db.sql("""
 		select
-			tabItem.name, tabItem.item_other_names,<img src='/files/nav-pharma.jpg'> as image,tabItem.item_group, if((bin.actual_qty>0),CONCAT_WS(':',bin.company,bin.actual_qty),0)
+			tabItem.name, tabItem.item_other_names,tabItem.item_group, if((bin.actual_qty>0),CONCAT_WS(':',bin.company,bin.actual_qty),0)
 		from
 			tabItem
 
