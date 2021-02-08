@@ -764,6 +764,11 @@ def po_before_save(self, method):
 	tax_breakup_data(self)
 	sales_order_ref(self)
 
+def po_before_update_after_submit(self,method):
+	for row in self.items:
+		if row.rate:
+			row.original_rate = row.rate
+
 def mapping_sales_order(self):
 	data = frappe.db.get_value("Delivery Note Item" , {'parent': self.delivery_note}, 'against_sales_order')
 	for row in self.items:
@@ -2158,4 +2163,3 @@ def change_url():
 					if idx%50 == 0:
 						frappe.db.commit()
 						print('commit' + str(idx), str(d.name))
-

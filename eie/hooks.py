@@ -167,6 +167,7 @@ doc_events = {
 		"before_save": "eie.api.po_before_save",
 		"on_submit": "eie.api.po_on_submit",
 		"on_cancel": "eie.api.po_on_cancel",
+		"before_update_after_submit": "eie.api.po_before_update_after_submit"
 	},
 	"Purchase Receipt":{
 		"before_save": "eie.api.update_serial_no",
