@@ -1378,9 +1378,7 @@ def update_grand_total(docname):
 	doc.db_set('total_operational_cost',flt(total_op_cost))
 	doc.db_set("grand_total_cost",flt(doc.total_cost + doc.total_operational_cost))
 	doc.db_set('per_unit_cost',flt(doc.total_cost + doc.total_operational_cost)/flt(doc.quantity))
-	frappe.msgprint(str(doc.per_unit_cost))
-
-
+	
 
 def calculate_total(self):
 	total_op_cost = 0
