@@ -1371,15 +1371,22 @@ def docs_before_naming(self, method):
 @frappe.whitelist()
 def update_grand_total(docname):
 	doc = frappe.get_doc("BOM",docname)
+	total_op_cost = 0
 	total_op_cost = doc.man_power_cost + doc.ancillary_cost + doc.powder_coating + doc.buffing_cost + doc.wire_cutting_cost + doc.laser_cutting_cost + doc.shaping_machine_cost + doc.boring_machine_cost + doc.grinding_machine_cost + doc.teflon_coating_cost + doc.cooling_system_fitting_cost + doc.cnc_machining_cost + doc.hard_chrome_plating_cost + doc.chrome_plating_cost
+	for row in doc.additional_cost:
+		total_op_cost += row.cost
 	doc.db_set('total_operational_cost',flt(total_op_cost))
 	doc.db_set("grand_total_cost",flt(doc.total_cost + doc.total_operational_cost))
 	doc.db_set('per_unit_cost',flt(doc.total_cost + doc.total_operational_cost)/flt(doc.quantity))
+	frappe.msgprint(str(doc.per_unit_cost))
 
 
 
 def calculate_total(self):
+	total_op_cost = 0
 	total_op_cost = self.man_power_cost + self.ancillary_cost + self.powder_coating + self.buffing_cost + self.wire_cutting_cost + self.laser_cutting_cost + self.shaping_machine_cost + self.boring_machine_cost + self.grinding_machine_cost + self.teflon_coating_cost + self.cooling_system_fitting_cost + self.cnc_machining_cost + self.hard_chrome_plating_cost + self.chrome_plating_cost
+	for row in self.additional_cost:
+		total_op_cost += row.cost
 	self.db_set('total_operational_cost',flt(total_op_cost))
 	self.db_set("grand_total_cost",flt(self.total_cost + self.total_operational_cost))
 	self.db_set('per_unit_cost',flt(self.total_cost + self.total_operational_cost)/flt(self.quantity))
