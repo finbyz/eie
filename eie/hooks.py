@@ -222,6 +222,9 @@ doc_events = {
 		"before_submit": "eie.api.pe_on_submit",
 		"on_update_after_submit": "eie.api.pe_before_update_after_submit",
 	},
+	"Journal Entry":{
+		"validate":"eie.api.je_validate",
+	},
 	# ("Sales Invoice", "Purchase Invoice", "Payment Request", "Payment Entry", "Journal Entry", "Material Request", "Purchase Order", "Work Order", "Production Plan", "Stock Entry", "Quotation", "Sales Order", "Delivery Note", "Purchase Receipt", "Packing Slip"): {
 	# 	"before_naming": "eie.api.docs_before_naming",
 	# }
