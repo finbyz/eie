@@ -2170,9 +2170,8 @@ def change_url():
 						print('commit' + str(idx), str(d.name))
 
 def je_validate(self, method):
-	if self.voucher_type == "Expense Bill Entry":
-		if self.bill_no:
-			if frappe.db.exists("Journal Entry",{"bill_no":self.bill_no,"voucher_type":"Expense Bill Entry"}):
-				entry_no = frappe.db.exists("Journal Entry",{"bill_no":self.bill_no,"voucher_type":"Expense Bill Entry"})
-				url = get_url_to_form("Journal Entry", entry_no)
-				frappe.throw("Bill No. Should be Unique, Current Bill No: '{}' found in <b><a href='{}'>{}</a></b>".format(frappe.bold(self.bill_no),url,entry_no))
+	if self.voucher_type == "Expense Bill Entry" and self.bill_no and self.party:
+		if frappe.db.exists("Journal Entry",{"bill_no":self.bill_no,"voucher_type":"Expense Bill Entry","party":self.party}):
+			entry_no = frappe.db.exists("Journal Entry",{"bill_no":self.bill_no,"voucher_type":"Expense Bill Entry","party":self.party})
+			url = get_url_to_form("Journal Entry", entry_no)
+			frappe.throw("Bill No. Should be Unique, Current Bill No: '{}' found in <b><a href='{}'>{}</a></b>".format(frappe.bold(self.bill_no),url,entry_no))
