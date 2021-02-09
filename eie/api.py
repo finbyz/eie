@@ -1382,7 +1382,7 @@ def update_grand_total(docname):
 
 def calculate_total(self):
 	total_op_cost = 0
-	total_op_cost = self.man_power_cost + self.ancillary_cost + self.powder_coating + self.buffing_cost + self.wire_cutting_cost + self.laser_cutting_cost + self.shaping_machine_cost + self.boring_machine_cost + self.grinding_machine_cost + self.teflon_coating_cost + self.cooling_system_fitting_cost + self.cnc_machining_cost + self.hard_chrome_plating_cost + self.chrome_plating_cost
+	# total_op_cost = self.man_power_cost + self.ancillary_cost + self.powder_coating + self.buffing_cost + self.wire_cutting_cost + self.laser_cutting_cost + self.shaping_machine_cost + self.boring_machine_cost + self.grinding_machine_cost + self.teflon_coating_cost + self.cooling_system_fitting_cost + self.cnc_machining_cost + self.hard_chrome_plating_cost + self.chrome_plating_cost
 	for row in self.additional_cost:
 		total_op_cost += row.cost
 	self.db_set('total_operational_cost',flt(total_op_cost))
