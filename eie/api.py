@@ -19,7 +19,7 @@ import datetime
 from six import itervalues, string_types
 from erpnext.manufacturing.doctype.bom.bom import add_additional_cost
 from erpnext.stock.doctype.item_manufacturer.item_manufacturer import get_item_manufacturer_part_no
-from erpnext.stock.get_item_details import get_conversion_factor
+from erpnext.stock.get_item_details import get_conversion_factor,get_item_warehouse,get_default_income_account,get_default_cost_center,get_default_expense_account,get_default_supplier
 from erpnext.stock.doctype.item.item import get_item_defaults
 from erpnext.setup.doctype.item_group.item_group import get_item_group_defaults
 from erpnext.setup.doctype.brand.brand import get_brand_defaults
@@ -2200,7 +2200,10 @@ def set_default_warehouse(self):
 			}, fieldname=('default_warehouse'))
 		if warehouse:
 			row.warehouse = cstr(warehouse)
-		
+
+sales_doctypes = ['Quotation', 'Sales Order', 'Delivery Note', 'Sales Invoice']
+purchase_doctypes = ['Material Request', 'Supplier Quotation', 'Purchase Order', 'Purchase Receipt', 'Purchase Invoice']
+	
 def get_basic_details(args, item, overwrite_warehouse=True):
 	"""
 	:param args: {
@@ -2275,7 +2278,10 @@ def get_basic_details(args, item, overwrite_warehouse=True):
 			args.uom = item.purchase_uom if item.purchase_uom else item.stock_uom
 		else:
 			args.uom = item.stock_uom
-
+	#finbyz changes start		
+	if args.get('doctype') in sales_doctypes:
+		item.item_name = item.website_item_name or item.item_name
+	#finbyz changes end
 	out = frappe._dict({
 		"item_code": item.name,
 		"item_name": item.item_name,

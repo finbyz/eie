@@ -249,3 +249,7 @@ from eie.override_defaults import revert as my_revert
 from eie.override_defaults import override_after_insert
 #EnergyPointLog.revert = my_revert
 #EnergyPointLog.after_insert = override_after_insert
+
+from erpnext.stock import get_item_details
+from eie.api import get_basic_details
+get_item_details.get_basic_details = get_basic_details
