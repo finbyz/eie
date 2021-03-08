@@ -200,6 +200,7 @@ doc_events = {
 	},
 	"Item": {
 		"before_rename": "eie.api.item_before_rename",
+		"validate": "eie.api.item_validate",
 	},	
 	"BOM": {
 		"validate": "eie.api.bom_validate",

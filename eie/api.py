@@ -18,6 +18,11 @@ from frappe.core.doctype.communication.email import make
 import datetime 
 from six import itervalues, string_types
 from erpnext.manufacturing.doctype.bom.bom import add_additional_cost
+from erpnext.stock.doctype.item_manufacturer.item_manufacturer import get_item_manufacturer_part_no
+from erpnext.stock.get_item_details import get_conversion_factor
+from erpnext.stock.doctype.item.item import get_item_defaults
+from erpnext.setup.doctype.item_group.item_group import get_item_group_defaults
+from erpnext.setup.doctype.brand.brand import get_brand_defaults
 
 @frappe.whitelist()
 def validate_serial_nos(self, method):
@@ -1262,6 +1267,14 @@ def item_before_rename(self,method, *args, **kwargs):
 	if(regex.search(args[1])):
 		frappe.throw("Special characters like <b> < > ? / ; : \' \" { } [ ] | \\ # $ % ^ ( ) * + </b> are not allowed in Item Code! You keep them in Item Name", title="Invalid Characters")
 
+
+def item_validate(self,method):
+	if self.product_code:
+		specialchars = '[@_!#$\\\\"\'%^&*()<>?/|}{~:]'
+		regex = re.compile(specialchars)
+		if(regex.search(self.product_code)):
+			frappe.throw("Special characters like <b> < > ? / ; : \' \" { } [ ] | \\ # $ % ^ ( ) * + </b> are not allowed in Product Code!", title="Invalid Characters")
+
 def pe_before_update_after_submit(self, method):
 	pass
 	#validate_outstanding_amount(self)
@@ -1495,6 +1508,7 @@ def si_validate(self,method):
 
 def so_validate(self,method):
 	check_item_on_validate(self)
+	set_default_warehouse(self)
 
 def dn_validate(self,method):
 	check_item_on_validate(self)
@@ -2175,3 +2189,178 @@ def je_validate(self, method):
 			entry_no = frappe.db.exists("Journal Entry",{"docstatus":1,"bill_no":self.bill_no,"voucher_type":"Expense Bill Entry","party":self.party})
 			url = get_url_to_form("Journal Entry", entry_no)
 			frappe.throw("Bill No. Should be Unique, Current Bill No: '{}' found in <b><a href='{}'>{}</a></b>".format(frappe.bold(self.bill_no),url,entry_no))
+
+
+def set_default_warehouse(self):
+	for row in self.items:
+		warehouse = frappe.db.get_value("Item Default", 
+			filters={
+				'parent': row.item_code,
+				'company': self.company,
+			}, fieldname=('default_warehouse'))
+		if warehouse:
+			row.warehouse = cstr(warehouse)
+		
+def get_basic_details(args, item, overwrite_warehouse=True):
+	"""
+	:param args: {
+			"item_code": "",
+			"warehouse": None,
+			"customer": "",
+			"conversion_rate": 1.0,
+			"selling_price_list": None,
+			"price_list_currency": None,
+			"price_list_uom_dependant": None,
+			"plc_conversion_rate": 1.0,
+			"doctype": "",
+			"name": "",
+			"supplier": None,
+			"transaction_date": None,
+			"conversion_rate": 1.0,
+			"buying_price_list": None,
+			"is_subcontracted": "Yes" / "No",
+			"ignore_pricing_rule": 0/1
+			"project": "",
+			barcode: "",
+			serial_no: "",
+			currency: "",
+			update_stock: "",
+			price_list: "",
+			company: "",
+			order_type: "",
+			is_pos: "",
+			project: "",
+			qty: "",
+			stock_qty: "",
+			conversion_factor: ""
+		}
+	:param item: `item_code` of Item object
+	:return: frappe._dict
+	"""
+
+	if not item:
+		item = frappe.get_doc("Item", args.get("item_code"))
+
+	if item.variant_of:
+		item.update_template_tables()
+
+	item_defaults = get_item_defaults(item.name, args.company)
+	item_group_defaults = get_item_group_defaults(item.name, args.company)
+	brand_defaults = get_brand_defaults(item.name, args.company)
+
+	defaults = frappe._dict({
+		'item_defaults': item_defaults,
+		'item_group_defaults': item_group_defaults,
+		'brand_defaults': brand_defaults
+	})
+
+	warehouse = get_item_warehouse(item, args, overwrite_warehouse, defaults)
+
+	if args.get('doctype') == "Material Request" and not args.get('material_request_type'):
+		args['material_request_type'] = frappe.db.get_value('Material Request',
+			args.get('name'), 'material_request_type', cache=True)
+
+	expense_account = None
+
+	if args.get('doctype') == 'Purchase Invoice' and item.is_fixed_asset:
+		from erpnext.assets.doctype.asset_category.asset_category import get_asset_category_account
+		expense_account = get_asset_category_account(fieldname = "fixed_asset_account", item = args.item_code, company= args.company)
+
+	#Set the UOM to the Default Sales UOM or Default Purchase UOM if configured in the Item Master
+	if not args.get('uom'):
+		if args.get('doctype') in sales_doctypes:
+			args.uom = item.sales_uom if item.sales_uom else item.stock_uom
+		elif (args.get('doctype') in ['Purchase Order', 'Purchase Receipt', 'Purchase Invoice']) or \
+			(args.get('doctype') == 'Material Request' and args.get('material_request_type') == 'Purchase'):
+			args.uom = item.purchase_uom if item.purchase_uom else item.stock_uom
+		else:
+			args.uom = item.stock_uom
+
+	out = frappe._dict({
+		"item_code": item.name,
+		"item_name": item.item_name,
+		"description": cstr(item.description).strip(),
+		"image": cstr(item.image).strip(),
+		"warehouse": warehouse,
+		"income_account": get_default_income_account(args, item_defaults, item_group_defaults, brand_defaults),
+		"expense_account": expense_account or get_default_expense_account(args, item_defaults, item_group_defaults, brand_defaults) ,
+		"cost_center": get_default_cost_center(args, item_defaults, item_group_defaults, brand_defaults),
+		'has_serial_no': item.has_serial_no,
+		'has_batch_no': item.has_batch_no,
+		"batch_no": args.get("batch_no"),
+		"uom": args.uom,
+		"min_order_qty": flt(item.min_order_qty) if args.doctype == "Material Request" else "",
+		"qty": flt(args.qty) or 1.0,
+		"stock_qty": flt(args.qty) or 1.0,
+		"price_list_rate": 0.0,
+		"base_price_list_rate": 0.0,
+		"rate": 0.0,
+		"base_rate": 0.0,
+		"amount": 0.0,
+		"base_amount": 0.0,
+		"net_rate": 0.0,
+		"net_amount": 0.0,
+		"discount_percentage": 0.0,
+		"supplier": get_default_supplier(args, item_defaults, item_group_defaults, brand_defaults),
+		"update_stock": args.get("update_stock") if args.get('doctype') in ['Sales Invoice', 'Purchase Invoice'] else 0,
+		"delivered_by_supplier": item.delivered_by_supplier if args.get("doctype") in ["Sales Order", "Sales Invoice"] else 0,
+		"is_fixed_asset": item.is_fixed_asset,
+		"weight_per_unit":item.weight_per_unit,
+		"weight_uom":item.weight_uom,
+		"last_purchase_rate": item.last_purchase_rate if args.get("doctype") in ["Purchase Order"] else 0,
+		"transaction_date": args.get("transaction_date")
+	})
+
+	if item.get("enable_deferred_revenue") or item.get("enable_deferred_expense"):
+		out.update(calculate_service_end_date(args, item))
+
+	# calculate conversion factor
+	if item.stock_uom == args.uom:
+		out.conversion_factor = 1.0
+	else:
+		out.conversion_factor = args.conversion_factor or \
+			get_conversion_factor(item.name, args.uom).get("conversion_factor")
+
+	args.conversion_factor = out.conversion_factor
+	out.stock_qty = out.qty * out.conversion_factor
+
+	# calculate last purchase rate
+	if args.get('doctype') in purchase_doctypes:
+		from erpnext.buying.doctype.purchase_order.purchase_order import item_last_purchase_rate
+		out.last_purchase_rate = item_last_purchase_rate(args.name, args.conversion_rate, item.name, out.conversion_factor)
+
+	# if default specified in item is for another company, fetch from company
+	for d in [
+		["Account", "income_account", "default_income_account"],
+		["Account", "expense_account", "default_expense_account"],
+		["Cost Center", "cost_center", "cost_center"],
+		["Warehouse", "warehouse", ""]]:
+			if not out[d[1]]:
+				out[d[1]] = frappe.get_cached_value('Company',  args.company,  d[2]) if d[2] else None
+
+	for fieldname in ("item_name", "item_group", "barcodes", "brand", "stock_uom"):
+		out[fieldname] = item.get(fieldname)
+
+	if args.get("manufacturer"):
+		part_no = get_item_manufacturer_part_no(args.get("item_code"), args.get("manufacturer"))
+		if part_no:
+			out["manufacturer_part_no"] = part_no
+		else:
+			out["manufacturer_part_no"] = None
+			out["manufacturer"] = None
+	else:
+		data = frappe.get_value("Item", item.name,
+			["default_item_manufacturer", "default_manufacturer_part_no"] , as_dict=1)
+
+		if data:
+			out.update({
+				"manufacturer": data.default_item_manufacturer,
+				"manufacturer_part_no": data.default_manufacturer_part_no
+			})
+
+	child_doctype = args.doctype + ' Item'
+	meta = frappe.get_meta(child_doctype)
+	if meta.get_field("barcode"):
+		update_barcode_value(out)
+
+	return out
