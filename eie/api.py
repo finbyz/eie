@@ -19,7 +19,7 @@ import datetime
 from six import itervalues, string_types
 from erpnext.manufacturing.doctype.bom.bom import add_additional_cost
 from erpnext.stock.doctype.item_manufacturer.item_manufacturer import get_item_manufacturer_part_no
-from erpnext.stock.get_item_details import get_conversion_factor,get_item_warehouse,get_default_income_account,get_default_cost_center,get_default_expense_account,get_default_supplier
+from erpnext.stock.get_item_details import get_conversion_factor,get_item_warehouse,get_default_income_account,get_default_cost_center,get_default_expense_account,get_default_supplier,update_barcode_value, calculate_service_end_date
 from erpnext.stock.doctype.item.item import get_item_defaults
 from erpnext.setup.doctype.item_group.item_group import get_item_group_defaults
 from erpnext.setup.doctype.brand.brand import get_brand_defaults
