@@ -1116,7 +1116,8 @@ def send_sales_invoice_mails():
 	non_customers = ('Psp Projects Ltd.', 'EIE Instruments Pvt. Ltd.', 'Vindish Instruments Pvt. Ltd.')
 
 	data = frappe.get_list("Sales Invoice", filters={
-			'status': ['in', ('Unpaid', 'Overdue')],
+			'status': ['in', ('Overdue')],
+			'due_date': ("<=", nowdate()),
 			'currency': 'INR',
 			'docstatus': 1,
 			'dont_send_email': 0,
@@ -1385,7 +1386,6 @@ def docs_before_naming(self, method):
 def update_grand_total(docname):
 	doc = frappe.get_doc("BOM",docname)
 	total_op_cost = 0
-	total_op_cost = doc.man_power_cost + doc.ancillary_cost + doc.powder_coating + doc.buffing_cost + doc.wire_cutting_cost + doc.laser_cutting_cost + doc.shaping_machine_cost + doc.boring_machine_cost + doc.grinding_machine_cost + doc.teflon_coating_cost + doc.cooling_system_fitting_cost + doc.cnc_machining_cost + doc.hard_chrome_plating_cost + doc.chrome_plating_cost
 	for row in doc.additional_cost:
 		total_op_cost += row.cost
 	doc.db_set('total_operational_cost',flt(total_op_cost))
@@ -1593,7 +1593,7 @@ def send_emd_reminder():
 		return message
 
 	data = frappe.get_list("EMD", filters={
-		'due_date': ("<=", add_days(nowdate())),
+		'due_date': ("<=", add_days(nowdate(),90)),
 		'returned': 0,
 		'dont_send_email': 0,
 		'deposit_account': ["like","%EMD Receivable%"],
@@ -1602,7 +1602,6 @@ def send_emd_reminder():
 		order_by='posting_date',
 		fields=["customer", "address_display", "contact_display", "tender_no", "due_date", "amount", "payment_mode", "reference_num", "bank_account", "tender_name", "company", "contact_email"]
 	)
-
 	def get_customers():
 		customers_list = list(set([d.customer for d in data if d.customer]))
 		customers_list.sort()
@@ -1742,7 +1741,7 @@ def send_sd_reminder():
 		return message
 
 	data = frappe.get_list("EMD", filters={
-		'due_date': ("<=", add_days(nowdate())),
+		'due_date': ("<=", add_days(nowdate(),90)),
 		'returned': 0,
 		'dont_send_email': 0,
 		'deposit_account': ["like","%SD Receivable%"],
@@ -2167,7 +2166,6 @@ def change_url():
 			if os.path.exists(path):
 				if doc.attached_to_name:
 					if frappe.db.exists(doc.attached_to_doctype,doc.attached_to_name):
-						print(idx, d.name)
 						doc.file_name = doc.file_url.split('/')[-1]
 						doc.is_private = 1
 						doc.save()
@@ -2278,10 +2276,10 @@ def get_basic_details(args, item, overwrite_warehouse=True):
 			args.uom = item.purchase_uom if item.purchase_uom else item.stock_uom
 		else:
 			args.uom = item.stock_uom
-	#finbyz changes start		
-	if args.get('doctype') in sales_doctypes:
-		item.item_name = item.website_item_name or item.item_name
-	#finbyz changes end
+	# #finbyz changes start		
+	# if args.get('doctype') in sales_doctypes:
+	# 	item.item_name = item.website_item_name or item.item_name
+	# #finbyz changes end
 	out = frappe._dict({
 		"item_code": item.name,
 		"item_name": item.item_name,
