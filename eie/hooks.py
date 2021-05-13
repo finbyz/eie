@@ -235,12 +235,14 @@ scheduler_events = {
 	# "all": [
 	# 	"eie.inbox.change_email_queue_status",
 	# ],
-	"daily": [
-		"eie.api.create_purchase_order_daily",
-		"eie.api.sales_invoice_mails",
-		"eie.api.calibration_mails_daily",
-		"eie.api.emd_sd_mail",
-	],
+	"cron":{
+		"0 3 * * *": [
+			"eie.api.create_purchase_order_daily",
+			"eie.api.sales_invoice_mails",
+			"eie.api.calibration_mails_daily",
+			"eie.api.emd_sd_mail",
+		],
+	}
 }
 #import frappe
 
@@ -253,3 +255,7 @@ from eie.override_defaults import override_after_insert
 from erpnext.stock import get_item_details
 from eie.api import get_basic_details
 get_item_details.get_basic_details = get_basic_details
+
+from erpnext.manufacturing.doctype.bom.bom import BOM
+from eie.api import get_rm_rate
+BOM.get_rm_rate = get_rm_rate

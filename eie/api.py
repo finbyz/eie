@@ -23,6 +23,7 @@ from erpnext.stock.get_item_details import get_conversion_factor,get_item_wareho
 from erpnext.stock.doctype.item.item import get_item_defaults
 from erpnext.setup.doctype.item_group.item_group import get_item_group_defaults
 from erpnext.setup.doctype.brand.brand import get_brand_defaults
+from erpnext.stock.get_item_details import get_price_list_rate
 
 @frappe.whitelist()
 def validate_serial_nos(self, method):
@@ -1114,7 +1115,6 @@ def send_sales_invoice_mails():
 				Thanking you in anticipation.<br><br>For, EIE INSTRUMENTS PVT. LTD.<br>( Accountant )""".format(actual_amt, outstanding_amt)
 
 	non_customers = ('Psp Projects Ltd.', 'EIE Instruments Pvt. Ltd.', 'Vindish Instruments Pvt. Ltd.')
-
 	data = frappe.get_list("Sales Invoice", filters={
 			'status': ['in', ('Overdue')],
 			'due_date': ("<=", nowdate()),
@@ -1187,7 +1187,6 @@ def send_sales_invoice_mails():
 		except:
 			frappe.log_error("Mail Sending Issue", frappe.get_traceback())
 			continue
-
 	show_progress('Success', "All Mails Sent", str(cnt))
 	frappe.db.set_value("Cities", "CITY0001", "total", cnt)
 
@@ -2368,3 +2367,73 @@ def get_basic_details(args, item, overwrite_warehouse=True):
 		update_barcode_value(out)
 
 	return out
+
+def get_rm_rate(self, arg):
+	"""	Get raw material rate as per selected method, if bom exists takes bom cost """
+	rate = 0
+	if not self.rm_cost_as_per:
+		self.rm_cost_as_per = "Valuation Rate"
+
+	if arg.get('scrap_items'):
+		rate = self.get_valuation_rate(arg)
+	elif arg:
+		#Customer Provided parts will have zero rate
+		if not frappe.db.get_value('Item', arg["item_code"], 'is_customer_provided_item'):
+			if arg.get('bom_no') and self.set_rate_of_sub_assembly_item_based_on_bom:
+				rate = flt(self.get_bom_unitcost(arg['bom_no'])) * (arg.get("conversion_factor") or 1)
+			else:
+				if self.rm_cost_as_per == 'Valuation Rate':
+					rate = self.get_valuation_rate(arg) * (arg.get("conversion_factor") or 1)
+				elif self.rm_cost_as_per == 'Last Purchase Rate':
+					rate = get_company_wise_rate(self,arg)
+
+				elif self.rm_cost_as_per == "Price List":
+					if not self.buying_price_list:
+						frappe.throw(_("Please select Price List"))
+					args = frappe._dict({
+						"doctype": "BOM",
+						"price_list": self.buying_price_list,
+						"qty": arg.get("qty") or 1,
+						"uom": arg.get("uom") or arg.get("stock_uom"),
+						"stock_uom": arg.get("stock_uom"),
+						"transaction_type": "buying",
+						"company": self.company,
+						"currency": self.currency,
+						"conversion_rate": 1, # Passed conversion rate as 1 purposefully, as conversion rate is applied at the end of the function
+						"conversion_factor": arg.get("conversion_factor") or 1,
+						"plc_conversion_rate": 1,
+						"ignore_party": True
+					})
+					item_doc = frappe.get_doc("Item", arg.get("item_code"))
+					out = frappe._dict()
+					get_price_list_rate(args, item_doc, out)
+					rate = out.price_list_rate
+
+				if not rate:
+					if self.rm_cost_as_per == "Price List":
+						frappe.msgprint(_("Price not found for item {0} in price list {1}")
+							.format(arg["item_code"], self.buying_price_list), alert=True)
+					else:
+						frappe.msgprint(_("{0} not found for item {1}")
+							.format(self.rm_cost_as_per, arg["item_code"]), alert=True)
+
+	return flt(rate) * flt(self.plc_conversion_rate or 1) / (self.conversion_rate or 1)
+
+def get_company_wise_rate(self,arg):
+	rate = flt(arg.get('last_purchase_rate'))
+		# or frappe.db.get_value("Item", arg['item_code'], "last_purchase_rate")) \
+		# 	* (arg.get("conversion_factor") or 1)
+		# Finbyz Changes: Replaced above line with below query because of get rate from company filter
+	if not rate:
+		purchase_rate_query = frappe.db.sql("""
+			select incoming_rate
+			from `tabStock Ledger Entry`
+			where item_code = '{}' and incoming_rate > 0 and voucher_type in ('Purchase Receipt','Purchase Invoice') and company = '{}'
+			order by timestamp(posting_date, posting_time) desc
+			limit 1
+		""".format(arg['item_code'],arg.get('company') or self.company))
+		if purchase_rate_query:
+			rate = purchase_rate_query[0][0]
+		else:
+			rate = frappe.db.get_value("Item", arg['item_code'], "last_purchase_rate")
+	return rate
