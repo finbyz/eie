@@ -2,7 +2,7 @@ import frappe
 from frappe import _
 from frappe.utils import flt, cint
 import json
-from erpnext.controllers.accounts_controller import set_sales_order_defaults,set_purchase_order_defaults,validate_and_delete_children
+from erpnext.controllers.accounts_controller import set_order_defaults,validate_and_delete_children
 
 
 @frappe.whitelist()
@@ -16,10 +16,12 @@ def update_child_qty_rate(parent_doctype, trans_items, parent_doctype_name, chil
 			frappe.throw(_("You do not have permissions to {} items in a Sales Order.").format(action), title=_("Insufficient Permissions"))
 
 	def get_new_child_item(item_row):
-		if parent_doctype == "Sales Order":
-			return set_sales_order_defaults(parent_doctype, parent_doctype_name, child_docname, item_row)
-		if parent_doctype == "Purchase Order":
-			return set_purchase_order_defaults(parent_doctype, parent_doctype_name, child_docname, item_row)
+		# if parent_doctype == "Sales Order":
+		# 	return set_sales_order_defaults(parent_doctype, parent_doctype_name, child_docname, item_row)
+		# if parent_doctype == "Purchase Order":
+		# 	return set_purchase_order_defaults(parent_doctype, parent_doctype_name, child_docname, item_row)
+		child_doctype = "Sales Order Item" if parent_doctype == "Sales Order" else "Purchase Order Item" 
+		return set_order_defaults(parent_doctype, parent_doctype_name, child_doctype, child_docname, item_row)
 
 	def validate_quantity(child_item, d):
 		if parent_doctype == "Sales Order" and flt(d.get("qty")) < flt(child_item.delivered_qty):

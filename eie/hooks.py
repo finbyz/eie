@@ -151,7 +151,9 @@ doctype_js = {
 override_whitelisted_methods = {
 	"frappe.utils.print_format.download_pdf": "eie.print_format.download_pdf"
 }
-
+override_doctype_dashboards = {
+	"Material Request": "eie.eie.dashboard.material_request.get_data",
+}
 doc_events = {
 	"Sales Invoice": {
 		"validate": "eie.api.si_validate",
@@ -226,6 +228,9 @@ doc_events = {
 	"Journal Entry":{
 		"validate":"eie.api.je_validate",
 	},
+	"Contact":{
+		"validate":"eie.api.contact_validate"
+	}
 	# ("Sales Invoice", "Purchase Invoice", "Payment Request", "Payment Entry", "Journal Entry", "Material Request", "Purchase Order", "Work Order", "Production Plan", "Stock Entry", "Quotation", "Sales Order", "Delivery Note", "Purchase Receipt", "Packing Slip"): {
 	# 	"before_naming": "eie.api.docs_before_naming",
 	# }

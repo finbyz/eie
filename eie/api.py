@@ -1110,9 +1110,20 @@ def send_sales_invoice_mails():
 				We request you to look into the matter and release the payment/s without Further delay. <br><br>
 				If you need any clarifications for any of above invoice/s, please reach out to our Accounts Receivable Team by sending email to cd@eieinstruments.com or call Mr. Mahesh Parmar (079-66040638) or Mr. Hardik Suthar (07966040641).<br><br>
 				We will appreciate your immediate response in this regard.<br><br>
+
+				We are registered with MSME vide The Registration No: UDYAM-GJ-01-0051237,  <br>
+				As MSME Rule Customer make payment Within 45 Days only.<br><br>
+				And as per GST Rule no 37 (1) A registered person, who has availed of input tax credit on any inward supply of<br>
+				goods or services or both, but fails to pay to the supplier thereof, the value of such supply along with the tax<br>
+				payable thereon, within the time limit specified in the second proviso to sub-section (2) of section 16,shall furnish<br>
+				the details of such supply, the amount of value not paid and the amount of input tax credit availed of proportionate<br> 
+				to such amount not paid to the supplier in FORM GSTR-2 for the month immediately following the period of one<br>
+				hundred and eighty (180) days from the date of the issue of the invoice.<br><br>
+
 				<span style="background-color: rgb(255, 255, 0);">If payment already made from your end, kindly excuse us for this mail with the details of payments made to enable us to reconcile and credit your account. In case of online payment, sometimes, it is difficult to reconcile the name of the Payer and credit the relevant account.<br><br>
 				If invoice is not due please reconcile the same and arrange to release on due date. </span><br><br>
-				Thanking you in anticipation.<br><br>For, EIE INSTRUMENTS PVT. LTD.<br>( Accountant )""".format(actual_amt, outstanding_amt)
+				Thanking you in anticipation.<br><br>For, EIE INSTRUMENTS PVT. LTD.<br>( Accountant )
+				""".format(actual_amt, outstanding_amt)
 
 	non_customers = ('Psp Projects Ltd.', 'EIE Instruments Pvt. Ltd.', 'Vindish Instruments Pvt. Ltd.')
 	data = frappe.get_list("Sales Invoice", filters={
@@ -1167,6 +1178,12 @@ def send_sales_invoice_mails():
 
 			if bool(si.contact_email) and si.contact_email not in recipients:
 				recipients.append(si.contact_email)
+
+			if bool(si.store_person_email_id) and si.store_person_email_id not in recipients:
+				recipients.append(si.store_person_email_id)
+
+			if bool(si.user_email_id) and si.user_email_id not in recipients:
+				recipients.append(si.user_email_id)
 
 		message = header(customer) + '' + table + '' + footer(actual_amount, outstanding)
 		message += "<br><br>Recipients: " + ','.join(recipients)
@@ -2385,8 +2402,7 @@ def get_rm_rate(self, arg):
 				if self.rm_cost_as_per == 'Valuation Rate':
 					rate = self.get_valuation_rate(arg) * (arg.get("conversion_factor") or 1)
 				elif self.rm_cost_as_per == 'Last Purchase Rate':
-					rate = get_company_wise_rate(self,arg)
-
+					rate = get_company_wise_rate(self,arg) * (arg.get("conversion_factor") or 1)
 				elif self.rm_cost_as_per == "Price List":
 					if not self.buying_price_list:
 						frappe.throw(_("Please select Price List"))
@@ -2437,3 +2453,12 @@ def get_company_wise_rate(self,arg):
 		else:
 			rate = frappe.db.get_value("Item", arg['item_code'], "last_purchase_rate")
 	return rate
+
+def contact_validate(self,method):
+	for email in self.email_ids:
+		exist = frappe.db.get_list("Contact Email",{"parenttype":"Contact","email_id":email.email_id},"parent")
+		for parent in exist:
+			for mobile in self.phone_nos:
+				exists_mobile = frappe.db.get_value("Contact Phone",{"parent":parent.parent,"phone":mobile.phone},"parent")
+				if exists_mobile:
+					frappe.throw("Email and Mobile Contact Already exists in: {}".format(frappe.bold(exists_mobile)))

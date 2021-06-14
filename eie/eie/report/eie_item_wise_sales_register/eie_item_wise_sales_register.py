@@ -136,7 +136,7 @@ def get_tax_accounts(item_list, columns):
 
 	tax_details = frappe.db.sql("""
 		select
-			parent, account_head, rate,item_wise_tax_detail,
+			parent, account_head,item_wise_tax_detail,
 			charge_type, base_tax_amount_after_discount_amount
 		from `tabSales Taxes and Charges`
 		where
@@ -145,17 +145,24 @@ def get_tax_accounts(item_list, columns):
 			and parent in (%s)
 	""" % ', '.join(['%s']*len(invoice_item_row)), tuple(invoice_item_row.keys()))
 
-	for parent, account_head, rate, item_wise_tax_detail, charge_type, tax_amount in tax_details:
+	for parent, account_head, item_wise_tax_detail, charge_type, tax_amount in tax_details:
 		if account_head not in tax_accounts:
 			tax_accounts.append(account_head)
-		if rate not in rate_accounts:
-			rate_accounts.append(rate)
+			
 		if item_wise_tax_detail:
 			try:
 				item_wise_tax_detail = json.loads(item_wise_tax_detail)
 
-				for item_code, tax_amount in item_wise_tax_detail.items():
-					tax_amount = flt(tax_amount[1]) if isinstance(tax_amount, list) else flt(tax_amount)
+				for item_code, tax_data in item_wise_tax_detail.items():
+					# tax_amount = flt(tax_amount[1]) if isinstance(tax_amount, list) else flt(tax_amount)
+					if isinstance(tax_data, list):
+						tax_rate, tax_amount = tax_data
+					else:
+						tax_rate = tax_data
+						tax_amount = 0
+
+					if charge_type == 'Actual' and not tax_rate:
+						tax_rate = 0
 
 					item_net_amount = sum([flt(d.base_net_amount)
 						for d in item_row_map.get(parent, {}).get(item_code, [])])
@@ -163,7 +170,7 @@ def get_tax_accounts(item_list, columns):
 					for d in item_row_map.get(parent, {}).get(item_code, []):
 						item_tax_amount = flt((tax_amount * d.base_net_amount) / item_net_amount) if item_net_amount else 0
 						item_row_tax.setdefault(d.name, {})[account_head] = frappe._dict({
-							'tax_rate': rate,
+							'tax_rate': tax_rate,
 							'tax_amount': item_tax_amount
 						})
 	
@@ -172,7 +179,7 @@ def get_tax_accounts(item_list, columns):
 		elif charge_type == "Actual" and tax_amount:
 			for d in invoice_item_row.get(parent, []):				
 				item_row_tax.setdefault(d.name, {})[account_head] = frappe._dict({
-					'tax_rate': rate,
+					'tax_rate': 0,
 					'tax_amount': flt((tax_amount * d.base_net_amount) / d.base_net_total)
 				})
 
