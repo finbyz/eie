@@ -2456,7 +2456,7 @@ def get_company_wise_rate(self,arg):
 
 def contact_validate(self,method):
 	for email in self.email_ids:
-		exist = frappe.db.get_list("Contact Email",{"parenttype":"Contact","email_id":email.email_id},"parent")
+		exist = frappe.db.get_list("Contact Email",{"parenttype":"Contact","email_id":email.email_id,"parent":("!=",self.name)},"parent")
 		for parent in exist:
 			for mobile in self.phone_nos:
 				exists_mobile = frappe.db.get_value("Contact Phone",{"parent":parent.parent,"phone":mobile.phone},"parent")
