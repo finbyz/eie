@@ -30,6 +30,9 @@ def get_columns():
 		{ "label": _("Industry"),"fieldname": "Industry","fieldtype": "Link","options":"Industry Type","width": 120},
 		{ "label": _("Referece DocType"),"fieldname": "Referece DocType","fieldtype": "Data","width": 120},
 		{ "label": _("Referece Name"),"fieldname": "Referece Name","fieldtype": "Dynamic Link","options":"Referece DocType","width": 120},
+		{ "label": _("Created By"),"fieldname": "owner","fieldtype": "Link","options":"User","width": 120},
+		{ "label": _("Created On"),"fieldname": "creation","fieldtype": "Datetime","width": 140}
+
 	]
 
 def get_data(filters):
@@ -46,6 +49,8 @@ def get_data(filters):
 			"Industry": detail.industry,
 			"Referece DocType": detail.link_doctype,
 			"Referece Name": detail.link_name,
+			"owner": detail.owner,
+			"creation": detail.creation,
 		}
 
 		data.append(row)
@@ -71,7 +76,7 @@ def get_filtered_conditions(filters):
 def get_contact_details(filters):
 
 	conditions = get_filtered_conditions(filters)
-	fields = ["`tabDynamic Link`.link_doctype", "`tabDynamic Link`.link_name", "first_name", "last_name", "email_id", "phone", "mobile_no", "name"]
+	fields = ["`tabDynamic Link`.link_doctype", "`tabDynamic Link`.link_name", "first_name", "last_name", "email_id", "phone", "mobile_no", "name","owner","creation"]
 
 	data = frappe.get_list("Contact", filters=conditions, fields=fields)
 	temp_records = frappe._dict()
