@@ -12,6 +12,22 @@ frappe.query_reports["Industry Contact"] = {
 			default: "GENERAL",
 		},
 		{
+			fieldname: 'owner',
+			label: __("Created By"),
+			fieldtype: "Link",
+			options:"User",
+		},
+		{
+			fieldname: 'created_from',
+			label: __("Created From"),
+			fieldtype: "Datetime",
+		},
+		{
+			fieldname: 'created_to',
+			label: __("Created To"),
+			fieldtype: "Datetime",
+		},
+		{
 			fieldname: 'has_email',
 			label: __("Has Email"),
 			fieldtype: "Check",
@@ -28,6 +44,6 @@ frappe.query_reports["Industry Contact"] = {
 			label: __("Has Mobile No"),
 			fieldtype: "Check",
 			default: 0,
-		},
+		}
 	]
 }

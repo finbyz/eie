@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 import frappe
 from frappe import _
 from frappe.utils import cstr
+from frappe.utils import getdate
 
 def execute(filters=None):
 	columns, data = [], []
@@ -31,7 +32,7 @@ def get_columns():
 		{ "label": _("Referece DocType"),"fieldname": "Referece DocType","fieldtype": "Data","width": 120},
 		{ "label": _("Referece Name"),"fieldname": "Referece Name","fieldtype": "Dynamic Link","options":"Referece DocType","width": 120},
 		{ "label": _("Created By"),"fieldname": "owner","fieldtype": "Link","options":"User","width": 120},
-		{ "label": _("Created On"),"fieldname": "creation","fieldtype": "Datetime","width": 140}
+		{ "label": _("Created On"),"fieldname": "creation","fieldtype": "Date","width": 140}
 
 	]
 
@@ -70,7 +71,15 @@ def get_filtered_conditions(filters):
 
 	if filters.get('has_mobile_no'):
 		conditions.append(["Contact", "mobile_no", "!=", ""])
+	
+	if filters.get('owner'):
+		conditions.append(["Contact","owner","=", filters.get('owner')])
 
+	if filters.get('created_from'):
+		conditions.append(["Contact","creation",">=", filters.get('created_from')])
+
+	if filters.get('created_to'):
+		conditions.append(["Contact","creation","<=", filters.get('created_to')])
 	return conditions
 
 def get_contact_details(filters):
@@ -87,9 +96,11 @@ def get_contact_details(filters):
 	}
 
 	for row in data:
-		customer_name, industry = frappe.db.get_value(row.link_doctype, row.link_name, [
-				customer_field_map.get(row.link_doctype), 'industry'])
-
+		try:
+			customer_name, industry = frappe.db.get_value(row.link_doctype, row.link_name, [
+					customer_field_map.get(row.link_doctype), 'industry'])
+		except:
+			customer_name, industry = None, None
 		if filters.get('industry') and industry != filters.get('industry'):
 			continue
 
