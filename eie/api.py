@@ -17,7 +17,7 @@ from email.utils import formataddr
 from frappe.core.doctype.communication.email import make
 import datetime 
 from six import itervalues, string_types
-from erpnext.manufacturing.doctype.bom.bom import add_additional_cost
+from erpnext.manufacturing.doctype.bom.bom import add_additional_cost,get_valuation_rate
 from erpnext.stock.doctype.item_manufacturer.item_manufacturer import get_item_manufacturer_part_no
 from erpnext.stock.get_item_details import get_conversion_factor,get_item_warehouse,get_default_income_account,get_default_cost_center,get_default_expense_account,get_default_supplier,update_barcode_value, calculate_service_end_date
 from erpnext.stock.doctype.item.item import get_item_defaults
@@ -2392,7 +2392,7 @@ def get_rm_rate(self, arg):
 		self.rm_cost_as_per = "Valuation Rate"
 
 	if arg.get('scrap_items'):
-		rate = self.get_valuation_rate(arg)
+		rate = get_valuation_rate(arg)
 	elif arg:
 		#Customer Provided parts will have zero rate
 		if not frappe.db.get_value('Item', arg["item_code"], 'is_customer_provided_item'):
@@ -2400,7 +2400,7 @@ def get_rm_rate(self, arg):
 				rate = flt(self.get_bom_unitcost(arg['bom_no'])) * (arg.get("conversion_factor") or 1)
 			else:
 				if self.rm_cost_as_per == 'Valuation Rate':
-					rate = self.get_valuation_rate(arg) * (arg.get("conversion_factor") or 1)
+					rate = get_valuation_rate(arg) * (arg.get("conversion_factor") or 1)
 				elif self.rm_cost_as_per == 'Last Purchase Rate':
 					rate = get_company_wise_rate(self,arg) * (arg.get("conversion_factor") or 1)
 				elif self.rm_cost_as_per == "Price List":

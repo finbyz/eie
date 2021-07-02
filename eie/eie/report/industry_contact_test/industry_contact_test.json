@@ -1,0 +1,74 @@
+{
+ "add_total_row": 0,
+ "columns": [],
+ "creation": "2021-06-30 11:29:16.678285",
+ "disable_prepared_report": 0,
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [
+  {
+   "fieldname": "Created By",
+   "fieldtype": "Data",
+   "label": "Created By",
+   "mandatory": 0,
+   "wildcard_filter": 0
+  }
+ ],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "EIE",
+ "modified": "2021-06-30 11:30:25.582355",
+ "modified_by": "ajay@eieinstruments.com",
+ "module": "EIE",
+ "name": "Industry Contact test",
+ "owner": "ajay@eieinstruments.com",
+ "prepared_report": 1,
+ "ref_doctype": "Contact",
+ "report_name": "Industry Contact test",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "Purchase Manager"
+  },
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "Sales User"
+  },
+  {
+   "role": "Maintenance User"
+  },
+  {
+   "role": "Accounts User"
+  },
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "Maintenance Manager"
+  },
+  {
+   "role": "Purchase User"
+  },
+  {
+   "role": "Sales Master Manager"
+  },
+  {
+   "role": "Purchase Master Manager"
+  },
+  {
+   "role": "Local Admin"
+  },
+  {
+   "role": "Collection Dept"
+  },
+  {
+   "role": "EMD"
+  }
+ ]
+}

@@ -17,18 +17,18 @@ app_license = "GPL 3"
 # include js, css files in header of desk.html
 # app_include_css = "/assets/eie/css/eie.css"
 
-app_include_css = [
-	"/assets/eie/css/eie.min.css",
-	"assets/css/summernote.min.css"
-]
-app_include_js = [
-	"/assets/eie/js/eie.min.js",
-	"assets/js/summernote.min.js",
-	"assets/js/comment_desk.min.js",
-	"assets/js/editor.min.js",
-	"assets/js/timeline.min.js",
-	"assets/js/sms_manager.js"
-]
+# app_include_css = [
+# 	"/assets/eie/css/eie.min.css",
+# 	"assets/css/summernote.min.css"
+# ]
+# app_include_js = [
+# 	"/assets/eie/js/eie.min.js",
+# 	"assets/js/summernote.min.js",
+# 	"assets/js/comment_desk.min.js",
+# 	"assets/js/editor.min.js",
+# 	"assets/js/timeline.min.js",
+# 	"assets/js/sms_manager.js"
+# ]
 # include js, css files in header of web template
 # web_include_css = "/assets/eie/css/eie.css"
 # web_include_js = "/assets/eie/js/eie.js"
