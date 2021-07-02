@@ -264,3 +264,13 @@ get_item_details.get_basic_details = get_basic_details
 from erpnext.manufacturing.doctype.bom.bom import BOM
 from eie.api import get_rm_rate
 BOM.get_rm_rate = get_rm_rate
+
+
+#v13 override
+from eie.v13_override import get_place_of_supply, get_pending_raw_materials
+
+from erpnext.regional.india import utils
+utils.get_place_of_supply = get_place_of_supply
+
+from erpnext.stock.doctype.stock_entry.stock_entry import StockEntry
+StockEntry.get_pending_raw_materials = get_pending_raw_materials
