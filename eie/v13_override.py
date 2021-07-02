@@ -1,5 +1,6 @@
 import frappe
-from frappe.utils import cstr
+from frappe.utils import cstr, flt
+from six import iteritems
 
 def get_place_of_supply(party_details, doctype):
 	if not frappe.get_meta('Address').has_field('gst_state'): return
@@ -21,7 +22,7 @@ def get_pending_raw_materials(self, backflush_based_on=None):
 			issue (item quantity) that is pending to issue or desire to transfer,
 			whichever is less
 		"""
-		item_dict = get_pro_order_required_items(backflush_based_on)
+		item_dict = get_pro_order_required_items(self,backflush_based_on)
 
 		max_qty = flt(self.pro_doc.qty)
 
