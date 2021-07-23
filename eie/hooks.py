@@ -21,14 +21,14 @@ app_license = "GPL 3"
 # 	"/assets/eie/css/eie.min.css",
 # 	"assets/css/summernote.min.css"
 # ]
-# app_include_js = [
-# 	"/assets/eie/js/eie.min.js",
-# 	"assets/js/summernote.min.js",
-# 	"assets/js/comment_desk.min.js",
-# 	"assets/js/editor.min.js",
-# 	"assets/js/timeline.min.js",
-# 	"assets/js/sms_manager.js"
-# ]
+app_include_js = [
+	# "/assets/eie/js/eie.min.js",
+	# "assets/js/summernote.min.js",
+	# "assets/js/comment_desk.min.js",
+	# "assets/js/editor.min.js",
+	# "assets/js/timeline.min.js",
+	"/assets/js/eie_transactions.min.js"
+]
 # include js, css files in header of web template
 # web_include_css = "/assets/eie/css/eie.css"
 # web_include_js = "/assets/eie/js/eie.js"
@@ -44,7 +44,8 @@ page_js = {"permission-manager" : "public/js/eie.min.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
 doctype_js = {
-	"Sales Order": "public/js/doctype_js/sales_order.js"
+	"Sales Order": "public/js/doctype_js/sales_order.js",
+	"Delivery Note": "public/js/doctype_js/delivery_note.js"
 }
 # Home Pages
 # ----------
