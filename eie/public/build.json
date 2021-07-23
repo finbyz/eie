@@ -10,11 +10,15 @@
 	],
 	"js/comment_desk.min.js": [
 		"public/js/frappe/ui/comment.js"
+		
 	],
 	"js/timeline.min.js": [
 		"public/js/frappe/form/footer/timeline.js"
 	],
 	"js/sms_manager.js": [
 		"public/js/sms_manager.js"
+	],
+	"js/eie_transactions.min.js":[
+		"public/js/transaction.js"
 	]
 }
