@@ -90,7 +90,7 @@ def get_columns(additional_table_columns):
 def get_conditions(filters):
 	conditions = ""
 
-	for opts in (("company", " and company=%(company)s"),
+	for opts in (("company", " and si.company=%(company)s"),
 		("customer", " and si.customer = %(customer)s"),
 		("item_code", " and si_item.item_code = %(item_code)s"),
 		("from_date", " and si.posting_date>=%(from_date)s"),
@@ -168,7 +168,12 @@ def get_tax_accounts(item_list, columns):
 						for d in item_row_map.get(parent, {}).get(item_code, [])])
 
 					for d in item_row_map.get(parent, {}).get(item_code, []):
-						item_tax_amount = flt((tax_amount * d.base_net_amount) / item_net_amount) if item_net_amount else 0
+						# finbyz change
+						tx_amount = 0
+						if item_row_tax and item_row_tax.get(d.name) and item_row_tax.get(d.name).get(account_head):
+							tx_amount = flt(item_row_tax.get(d.name)[account_head]['tax_amount'])
+
+						item_tax_amount =  tx_amount + flt((tax_amount * d.base_net_amount) / item_net_amount) if item_net_amount else 0
 						item_row_tax.setdefault(d.name, {})[account_head] = frappe._dict({
 							'tax_rate': tax_rate,
 							'tax_amount': item_tax_amount

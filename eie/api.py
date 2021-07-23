@@ -25,6 +25,8 @@ from erpnext.setup.doctype.item_group.item_group import get_item_group_defaults
 from erpnext.setup.doctype.brand.brand import get_brand_defaults
 from erpnext.stock.get_item_details import get_price_list_rate
 
+from frappe.model.meta import get_field_precision
+from erpnext.accounts.utils import get_stock_accounts,get_stock_and_account_balance
 @frappe.whitelist()
 def validate_serial_nos(self, method):
 
@@ -2199,8 +2201,8 @@ def change_url():
 
 def je_validate(self, method):
 	if self.voucher_type == "Expense Bill Entry" and self.bill_no and self.party:
-		if frappe.db.exists("Journal Entry",{"docstatus":1,"bill_no":self.bill_no,"voucher_type":"Expense Bill Entry","party":self.party}):
-			entry_no = frappe.db.exists("Journal Entry",{"docstatus":1,"bill_no":self.bill_no,"voucher_type":"Expense Bill Entry","party":self.party})
+		if frappe.db.exists("Journal Entry",{"docstatus":1,"bill_no":self.bill_no,"voucher_type":"Expense Bill Entry","party":self.party,'fiscal':self.fiscal}):
+			entry_no = frappe.db.exists("Journal Entry",{"docstatus":1,"bill_no":self.bill_no,"voucher_type":"Expense Bill Entry","party":self.party,'fiscal':self.fiscal})
 			url = get_url_to_form("Journal Entry", entry_no)
 			frappe.throw("Bill No. Should be Unique, Current Bill No: '{}' found in <b><a href='{}'>{}</a></b>".format(frappe.bold(self.bill_no),url,entry_no))
 
@@ -2462,3 +2464,47 @@ def contact_validate(self,method):
 				exists_mobile = frappe.db.get_value("Contact Phone",{"parent":parent.parent,"phone":mobile.phone},"parent")
 				if exists_mobile:
 					frappe.throw("Email and Mobile Contact Already exists in: {}".format(frappe.bold(exists_mobile)))
+
+def check_if_stock_and_account_balance_synced(posting_date, company, voucher_type=None, voucher_no=None):
+	if not cint(erpnext.is_perpetual_inventory_enabled(company)):
+		return
+
+	accounts = get_stock_accounts(company, voucher_type, voucher_no)
+	stock_adjustment_account = frappe.db.get_value("Company", company, "stock_adjustment_account")
+
+	for account in accounts:
+		account_bal, stock_bal, warehouse_list = get_stock_and_account_balance(account,
+			posting_date, company)
+
+		if abs(account_bal - stock_bal) > 5:
+			precision = get_field_precision(frappe.get_meta("GL Entry").get_field("debit"),
+				currency=frappe.get_cached_value('Company',  company,  "default_currency"))
+
+			diff = flt(stock_bal - account_bal, precision)
+
+			error_reason = _("Stock Value ({0}) and Account Balance ({1}) are out of sync for account {2} and it's linked warehouses as on {3}.").format(
+				stock_bal, account_bal, frappe.bold(account), posting_date)
+			error_resolution = _("Please create an adjustment Journal Entry for amount {0} on {1}")\
+				.format(frappe.bold(diff), frappe.bold(posting_date))
+
+			# frappe.msgprint(
+			# 	msg="""{0}<br></br>{1}<br></br>""".format(error_reason, error_resolution),
+			# 	raise_exception=StockValueAndAccountBalanceOutOfSync,
+			# 	title=_('Values Out Of Sync'),
+			# 	primary_action={
+			# 		'label': _('Make Journal Entry'),
+			# 		'client_action': 'erpnext.route_to_adjustment_jv',
+			# 		'args': get_journal_entry(account, stock_adjustment_account, diff)
+			# 	})
+
+def cal():
+    from frappe.utils.background_jobs import enqueue, get_jobs
+    doc_type = "Stock Entry"
+    doc_name = "STE/VPL/2122/02599"
+    job = "submit entry " + doc_name
+
+    enqueue(submit_entry,queue= "long", timeout= 3600, job_name= job, doc_type = doc_type, doc_name = doc_name)
+
+def submit_entry(doc_type,doc_name):
+    doc = frappe.get_doc(doc_type,doc_name)
+    doc.submit()

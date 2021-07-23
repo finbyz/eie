@@ -274,3 +274,8 @@ utils.get_place_of_supply = get_place_of_supply
 
 from erpnext.stock.doctype.stock_entry.stock_entry import StockEntry
 StockEntry.get_pending_raw_materials = get_pending_raw_materials
+
+# Override Stock and Accounts diff validation for remove validation 
+from erpnext.accounts import utils
+from eie.api import check_if_stock_and_account_balance_synced
+utils.check_if_stock_and_account_balance_synced = check_if_stock_and_account_balance_synced
