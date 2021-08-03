@@ -45,7 +45,8 @@ page_js = {"permission-manager" : "public/js/eie.min.js"}
 
 doctype_js = {
 	"Sales Order": "public/js/doctype_js/sales_order.js",
-	"Delivery Note": "public/js/doctype_js/delivery_note.js"
+	"Delivery Note": "public/js/doctype_js/delivery_note.js",
+	"Stock Entry": "public/js/doctype_js/stock_entry.js",
 }
 # Home Pages
 # ----------

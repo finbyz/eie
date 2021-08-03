@@ -607,6 +607,7 @@ erpnext.selling.SalesOrderController = erpnext.selling.SellingController.extend(
 				frappe.ui.form.is_saving = false;
 			}
 		});
-	}
+	},
+	
 });
 $.extend(cur_frm.cscript, new erpnext.selling.SalesOrderController({frm: cur_frm}));
