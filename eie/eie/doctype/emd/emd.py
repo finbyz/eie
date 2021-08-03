@@ -64,6 +64,7 @@ class EMD(Document):
 		self.db_set('journal_entry' , jv.name)
 		jv.submit()
 
+	@frappe.whitelist()
 	def cancel_return(self):
 		if self.return_journal_entry:
 			jv = frappe.get_doc("Journal Entry" , self.return_journal_entry)
