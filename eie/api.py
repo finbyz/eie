@@ -1286,8 +1286,23 @@ def item_before_rename(self,method, *args, **kwargs):
 	if(regex.search(args[1])):
 		frappe.throw("Special characters like <b> < > ? / ; : \' \" { } [ ] | \\ # $ % ^ ( ) * + </b> are not allowed in Item Code! You keep them in Item Name", title="Invalid Characters")
 
+def validate_disable_item(self):
+	if self.disabled:
+		if not frappe.db.get_value("Item",self.name,"disabled"):
+			bom = frappe.db.sql("""
+				select bi.item_code,bi.parent
+				from  `tabBOM Item` as bi
+				left join `tabBOM` as b
+				on bi.parent = b.name
+				where b.is_default=1 and bi.item_code='{}'
+				""".format(self.item_code),as_dict=1)
+			if bom:
+				for each in bom:
+					frappe.throw("Please remove item from BOM <a href= '/app/bom/{bom}'>{bom}</a> to disable it".format(bom = each.parent)) 
+	
 
 def item_validate(self,method):
+	validate_disable_item(self)
 	if self.product_code:
 		specialchars = '[@_!#$\\\\"\'%^&*()<>?/|}{~:]'
 		regex = re.compile(specialchars)
