@@ -10,6 +10,7 @@ app_icon = "octicon octicon-circuit-board"
 app_color = "orange"
 app_email = "info@finbyz.com"
 app_license = "GPL 3"
+app_logo_url = "/files/favicon.png"
 
 # Includes in <head>
 # ------------------

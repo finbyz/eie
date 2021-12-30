@@ -2512,14 +2512,14 @@ def check_if_stock_and_account_balance_synced(posting_date, company, voucher_typ
 			# 		'args': get_journal_entry(account, stock_adjustment_account, diff)
 			# 	})
 
-def cal():
-    from frappe.utils.background_jobs import enqueue, get_jobs
-    doc_type = "Stock Entry"
-    doc_name = "STE/VPL/2122/02599"
-    job = "submit entry " + doc_name
+# def cal():
+#     from frappe.utils.background_jobs import enqueue, get_jobs
+#     doc_type = "Stock Entry"
+#     doc_name = "STE/VPL/2122/02599"
+#     job = "submit entry " + doc_name
 
-    enqueue(submit_entry,queue= "long", timeout= 3600, job_name= job, doc_type = doc_type, doc_name = doc_name)
+#     enqueue(submit_entry,queue= "long", timeout= 3600, job_name= job, doc_type = doc_type, doc_name = doc_name)
 
-def submit_entry(doc_type,doc_name):
-    doc = frappe.get_doc(doc_type,doc_name)
-    doc.submit()
+# def submit_entry(doc_type,doc_name):
+#     doc = frappe.get_doc(doc_type,doc_name)
+#     doc.submit()

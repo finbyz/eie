@@ -1,6 +1,7 @@
 import frappe
 from frappe.utils import cstr, flt
 from six import iteritems
+from frappe import _
 
 def get_place_of_supply(party_details, doctype):
 	if not frappe.get_meta('Address').has_field('gst_state'): return

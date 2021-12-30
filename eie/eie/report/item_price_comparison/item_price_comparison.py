@@ -18,14 +18,13 @@ def execute(filters=None):
 
 def get_columns():
 	columns = [
-		_("Item Code") + ":Link/Item:500",
-		_("Price 1") + ":Currency/Rate:90",
-		_("Price 2") + ":Currency/Rate:90",
-		_("Item Group") + ":Link/Item Group:140",
-		_("Difference") + ":Currency/Rate:90",
-		_("Price1 %") + ":Percentage/Percentage:80",
-		_("Price2 %") + ":Percentage/Percentage:80"		
-
+		{"label": _("Item"), "fieldname": "Item Code", "fieldtype": "Link", "options": "Item", "width": 500},
+		{"label": _("Price 1"), "fieldname": "Price 1", "fieldtype": "Currency", "width": 90, "convertible": "rate", "options": "currency"},
+		{"label": _("Price 2"), "fieldname": "Price 2", "fieldtype": "Currency", "width": 90, "convertible": "rate", "options": "currency"},
+		{"label": _("Item Group"), "fieldname": "Item Group", "fieldtype": "Link", "options": "Item Group", "width": 300},
+		{"label": _("Difference"), "fieldname": "Difference", "fieldtype": "Currency", "width": 90, "convertible": "rate", "options": "currency"},
+		{"label": _("Price1 %"), "fieldname": "Price1 %", "fieldtype": "Currency", "width": 90, "convertible": "rate", "options": "currency"},
+		{"label": _("Price2 %"), "fieldname": "Price2 %", "fieldtype": "Currency", "width": 90, "convertible": "rate", "options": "currency"}
 	]
 	return columns
 
@@ -38,7 +37,7 @@ def get_data(filters):
 	price_list2=filters.get('price_list2')
 	
 	items = frappe.db.sql("""
-		SELECT item_code as "item_code",item_group as "item_group" 
+		SELECT item_code , item_group
 		FROM `tabItem` 
 		WHERE is_sales_item=1%s
 		ORDER BY item_code ASC
