@@ -38,8 +38,8 @@ def get_outstanding_reference_documents(args):
 				d["exchange_rate"] = frappe.db.get_value(d.voucher_type, d.voucher_no, "conversion_rate")
 			elif d.voucher_type == "Journal Entry":
 				d["exchange_rate"] = get_exchange_rate(
-					party_account_currency,	company_currency, d.posting_date
-				)
+					party_account_currency,	company_currency, d.posting_date)
+
 		if d.voucher_type in ("Purchase Invoice"):
 			d["bill_no"] = frappe.db.get_value(d.voucher_type, d.voucher_no, "bill_no")
 

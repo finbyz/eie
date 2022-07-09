@@ -22,7 +22,7 @@
 					<td>{{ item }}</td>
 					<td class='text-right'>{{ itemised_taxable_amount.get(item|str + "_qty") }}</td>
 					<td class='text-right'>
-						{{ frappe.utils.fmt_money(itemised_taxable_amount.get(item), None, company_currency) }}
+						{{ frappe.utils.fmt_money(itemised_taxable_amount.get(item)|float, None, company_currency) }}
 						{% set _ = total.update({'Taxable Amount': total.get('Taxable Amount', 0) + itemised_taxable_amount.get(item, 0)}) %}
 					</td>
 					{% for tax_account in tax_accounts %}

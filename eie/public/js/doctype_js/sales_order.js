@@ -2,12 +2,12 @@ erpnext.selling.SalesOrderController = erpnext.selling.SellingController.extend(
 	onload: function(doc, dt, dn) {
 		this._super();
 	},
-
+	
 	refresh: function(doc, dt, dn) {
 		var me = this;
 		this._super();
 		let allow_delivery = false;
-
+		
 		if (doc.docstatus==1) {
 
 			if(this.frm.has_perm("submit")) {
@@ -59,7 +59,7 @@ erpnext.selling.SalesOrderController = erpnext.selling.SellingController.extend(
 					// material request
 					if(!doc.order_type || ["Sales", "Shopping Cart"].indexOf(doc.order_type)!==-1
 						&& flt(doc.per_delivered, 6) < 100) {
-						this.frm.add_custom_button(__('Material Request'), () => this.make_material_request(), __('Create'));
+						this.frm.add_custom_button(__('Material Request'), () => me.make_material_request(), __('Create'));
 						this.frm.add_custom_button(__('Request for Raw Materials'), () => this.make_raw_material_request(), __('Create'));
 					}
 
@@ -133,6 +133,21 @@ erpnext.selling.SalesOrderController = erpnext.selling.SellingController.extend(
 		}
 
 		this.order_type(doc);
+		cur_frm.set_query("item_code", "items", function(doc) {
+			if(doc.company == "EIE Instruments Pvt. Ltd."){
+				return{
+					query: "eie.api.new_item_query",
+					filters:{'dont_allow_sales_in_eie':0,'is_sales_item': 1}
+				}
+			}
+			else{
+				return {
+					query: "eie.api.new_item_query",
+					filters: {'is_sales_item': 1}
+				}
+			}
+			
+		});
 	},
 
 	create_pick_list() {
@@ -246,10 +261,19 @@ erpnext.selling.SalesOrderController = erpnext.selling.SellingController.extend(
 		this.get_terms();
 	},
 
+	// make_material_request: function() {
+	// 	frappe.model.open_mapped_doc({
+	// 		method: "erpnext.selling.doctype.sales_order.sales_order.make_material_request",
+	// 		frm: this.frm
+	// 	})
+	// },
+
 	make_material_request: function() {
-		frappe.model.open_mapped_doc({
-			method: "erpnext.selling.doctype.sales_order.sales_order.make_material_request",
-			frm: this.frm
+		frappe.call({
+			method : "eie.api.make_material_request",
+			args: {
+				"source_name": cur_frm.doc.name,
+			},
 		})
 	},
 
@@ -611,3 +635,13 @@ erpnext.selling.SalesOrderController = erpnext.selling.SellingController.extend(
 	
 });
 $.extend(cur_frm.cscript, new erpnext.selling.SalesOrderController({frm: cur_frm}));
+
+frappe.ui.form.on("Sales Order", {
+    cost_center:function(frm){
+        if(frm.doc.cost_center){
+            frm.doc.items.forEach(d => {
+                frappe.model.set_value(d.doctype, d.name, 'cost_center', frm.doc.cost_center);
+            });
+        }
+    }
+});

@@ -10,7 +10,7 @@
  "idx": 0,
  "is_standard": "Yes",
  "letter_head": "EIE wihout ISO",
- "modified": "2021-12-30 12:09:05.236097",
+ "modified": "2021-12-31 10:42:04.618976",
  "modified_by": "Administrator",
  "module": "EIE",
  "name": "Party Wise Stock Ledger",
@@ -19,5 +19,12 @@
  "ref_doctype": "Stock Ledger Entry",
  "report_name": "Party Wise Stock Ledger",
  "report_type": "Script Report",
- "roles": []
+ "roles": [
+  {
+   "role": "Manufacturing User"
+  },
+  {
+   "role": "System Manager"
+  }
+ ]
 }

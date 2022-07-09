@@ -46,9 +46,16 @@ page_js = {"permission-manager" : "public/js/eie.min.js"}
 
 doctype_js = {
 	"Sales Order": "public/js/doctype_js/sales_order.js",
+	"Sales Invoice": "public/js/doctype_js/sales_invoice.js",
 	"Delivery Note": "public/js/doctype_js/delivery_note.js",
 	"Stock Entry": "public/js/doctype_js/stock_entry.js",
+	"Quotation": "public/js/doctype_js/quotation.js",
+	"Purchase Invoice": "public/js/doctype_js/purchase_invoice.js",
+	"Purchase Order": "public/js/doctype_js/purchase_order.js",
+	"Purchase Receipt": "public/js/doctype_js/purchase_receipt.js",
+
 }
+
 # Home Pages
 # ----------
 
@@ -152,7 +159,8 @@ doctype_js = {
 # 	#"frappe.email.inbox.create_email_flag_queue": "eie.inbox.create_email_flag_queue",
 # }
 override_whitelisted_methods = {
-	"frappe.utils.print_format.download_pdf": "eie.print_format.download_pdf"
+	"frappe.utils.print_format.download_pdf": "eie.print_format.download_pdf",
+	"erpnext.manufacturing.doctype.bom.bom.get_bom_diff": "eie.bom_override.get_bom_diff"
 }
 override_doctype_dashboards = {
 	"Material Request": "eie.eie.dashboard.material_request.get_data",
@@ -160,6 +168,7 @@ override_doctype_dashboards = {
 doc_events = {
 	"Sales Invoice": {
 		"validate": "eie.api.si_validate",
+		"validate":"eie.eie.doc_events.sales_invoice.validate",
 		"before_save": "eie.api.si_before_save",
 		"on_submit": "eie.api.si_on_submit",
 		"on_cancel": "eie.api.si_on_cancel",
@@ -172,14 +181,17 @@ doc_events = {
 		"before_save": "eie.api.po_before_save",
 		"on_submit": "eie.api.po_on_submit",
 		"on_cancel": "eie.api.po_on_cancel",
-		"before_update_after_submit": "eie.api.po_before_update_after_submit"
+		"before_update_after_submit": "eie.api.po_before_update_after_submit",
+		"validate":["eie.eie.doc_events.purchase_order.validate","eie.eie.doc_events.purchase_order.validate_items"],
 	},
 	"Purchase Receipt":{
 		"before_save": "eie.api.update_serial_no",
 		"before_submit": "eie.api.validate_serial_nos",
+		"validate":"eie.eie.doc_events.purchase_receipt.validate",
 	},
 	"Purchase Invoice": {
 		"before_save": "eie.api.pi_before_save",
+		"validate":"eie.eie.doc_events.purchase_invoice.validate",
 	},
 	"Packing Slip": {
 		"before_save": "eie.api.ps_before_save",
@@ -187,7 +199,8 @@ doc_events = {
 	"Sales Order": {
 		"validate": "eie.api.so_validate",
 		"before_save": "eie.api.so_before_save",
-		"before_update_after_submit": "eie.api.so_before_update_after_submit"
+		"before_update_after_submit": "eie.api.so_before_update_after_submit",
+		"validate":"eie.eie.doc_events.sales_order.validate",
 	},
 	"Stock Entry": {
 		"before_save": "eie.api.SE_before_save",
@@ -202,6 +215,7 @@ doc_events = {
 		"before_save": "eie.api.dn_before_save",
 		"on_submit": "eie.api.dn_on_submit",
 		"on_cancel": "eie.api.dn_on_cancel",
+		"validate":"eie.eie.doc_events.delivery_note.validate",
 	},
 	"Item": {
 		"before_rename": "eie.api.item_before_rename",
@@ -223,6 +237,7 @@ doc_events = {
 	},
 	"Material Request": {
 		"before_save": "eie.api.mr_before_save",
+		"on_submit":"eie.api.mr_on_submit",
 	},
 	"Payment Entry": {
 		"before_submit": "eie.api.pe_on_submit",
@@ -233,7 +248,8 @@ doc_events = {
 	},
 	"Contact":{
 		"validate":"eie.api.contact_validate"
-	}
+	},
+	
 	# ("Sales Invoice", "Purchase Invoice", "Payment Request", "Payment Entry", "Journal Entry", "Material Request", "Purchase Order", "Work Order", "Production Plan", "Stock Entry", "Quotation", "Sales Order", "Delivery Note", "Purchase Receipt", "Packing Slip"): {
 	# 	"before_naming": "eie.api.docs_before_naming",
 	# }
@@ -252,6 +268,15 @@ scheduler_events = {
 		],
 	}
 }
+
+# e invoice override
+import erpnext
+
+from eie.e_invoice_override import update_invoice_taxes, get_invoice_value_details, make_einvoice
+erpnext.regional.india.e_invoice.utils.update_invoice_taxes = update_invoice_taxes
+erpnext.regional.india.e_invoice.utils.get_invoice_value_details = get_invoice_value_details
+erpnext.regional.india.e_invoice.utils.make_einvoice = make_einvoice
+
 #import frappe
 
 from frappe.social.doctype.energy_point_log.energy_point_log import EnergyPointLog
@@ -282,3 +307,11 @@ StockEntry.get_pending_raw_materials = get_pending_raw_materials
 from erpnext.accounts import utils
 from eie.api import check_if_stock_and_account_balance_synced
 utils.check_if_stock_and_account_balance_synced = check_if_stock_and_account_balance_synced
+
+from erpnext.accounts.doctype.sales_invoice import sales_invoice
+from eie.eie.doc_events.sales_invoice import make_delivery_note
+sales_invoice.make_delivery_note = make_delivery_note
+
+from erpnext.selling.doctype.sales_order import sales_order
+from eie.eie.doc_events.sales_order import make_delivery_note
+sales_order.make_delivery_note = make_delivery_note

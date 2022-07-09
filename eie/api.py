@@ -10,7 +10,7 @@ from erpnext.utilities.product import get_price
 from frappe.contacts.doctype.address.address import get_address_display, get_default_address, get_company_address
 from frappe.contacts.doctype.contact.contact import get_contact_details, get_default_contact
 from frappe.desk.reportview import get_match_cond, get_filters_cond
-from frappe.utils import nowdate, get_url_to_form, flt, cstr, getdate, get_fullname, now_datetime, parse_val, add_years, add_days
+from frappe.utils import nowdate, get_url_to_form, flt, cstr, getdate, get_fullname, now_datetime, parse_val, add_years, add_days, get_link_to_form
 from frappe.model.mapper import get_mapped_doc
 from frappe.utils.background_jobs import enqueue
 from email.utils import formataddr
@@ -76,7 +76,8 @@ def pi_before_save(self, method):
 
 def bom_validate(self,method):
 	calculate_total(self)
-	
+	check_unique_item(self)
+
 def bom_on_update_after_submit(self,method):
 	calculate_total(self)
 
@@ -103,11 +104,22 @@ def mr_before_save(self, method):
 
 def set_default_supplier(self):
 	for row in self.items:
+		if frappe.db.exists("Product Bundle",{"new_item_code":row.item_name}):
+			frappe.throw(f"row {row.idx}: Cannot request for Product Bundle Item")
 		row.default_supplier = cstr(frappe.db.get_value("Item Default", 
 			filters={
 				'parent': row.item_code,
 				'company': self.company,
 			}, fieldname=('default_supplier')))
+
+def check_unique_item(self):
+	if self._action == "submit":
+		unique_item_list = []
+		for item in self.items:
+			if item.item_code not in unique_item_list:
+				unique_item_list.append(item.item_code)
+			else:
+				frappe.throw(f"Item: {item.item_code} Exists Multiple Times in Items Table")
 
 @frappe.whitelist()
 def update_serial_no(self, method):
@@ -618,36 +630,156 @@ def filter_po_item(doctype, txt, searchfield, start, page_len, filters, as_dict=
 	filters.append(['Item', 'item_code', 'NOT IN', item_list])
 	return new_item_query(doctype, txt, searchfield, start, page_len, filters, as_dict=False)
 	
+# @frappe.whitelist()
+# def make_material_request(source_name, target_doc=None):
+# 	def postprocess(source, doc):
+# 		doc.material_request_type = "Purchase"
+
+# 		if hasattr(doc,'items'):
+# 			for row in doc.items:
+# 				tot_avail_qty = db.sql("select projected_qty from `tabBin` \
+# 					where item_code = %s and warehouse = %s", (row.item_code, row.warehouse))
+# 				projected_qty = tot_avail_qty and flt(tot_avail_qty[0][0]) or 0
+				
+# 				row.qty = abs(projected_qty)
+
+# 	def update_item(source, target, source_parent):
+# 		target.project = source_parent.project
+
+# 	def check_items(doc):
+# 		if db.exists('Product Bundle', {"new_item_code":doc.item_code}):
+# 			return False
+		
+# 		tot_avail_qty = db.sql("select projected_qty from `tabBin` \
+# 			where item_code = %s and warehouse = %s", (doc.item_code, doc.warehouse))
+# 		projected_qty = tot_avail_qty and flt(tot_avail_qty[0][0]) or 0
+
+# 		if projected_qty < 0:
+# 			return True
+			
+# 		return False
+
+# 	doc = get_mapped_doc("Sales Order", source_name, {
+# 		"Sales Order": {
+# 			"doctype": "Material Request",
+# 			"validation": {
+# 				"docstatus": ["=", 1]
+# 			}
+# 		},
+# 		"Sales Order Item": {
+# 			"doctype": "Material Request Item",
+# 			"field_map": {
+# 				"name": "sales_order_item",
+# 				"parent": "sales_order",
+# 				"stock_uom": "uom"
+# 			},
+# 			"postprocess": update_item,
+# 			"condition": check_items
+# 		},
+# 		"Packed Item": {
+# 			"doctype": "Material Request Item",
+# 			"field_map": {
+# 				"parent": "sales_order",
+# 				"stock_uom": "uom"
+# 			},
+# 			"postprocess": update_item,
+# 			"condition": lambda doc: doc.projected_qty < 0
+# 		}
+# 	}, target_doc, postprocess)
+
+# 	return doc
+
 @frappe.whitelist()
 def make_material_request(source_name, target_doc=None):
-	def postprocess(source, doc):
+	def postprocess_purchase(source, doc):
 		doc.material_request_type = "Purchase"
+		doc.schedule_date = source.delivery_date
+		if str(doc.schedule_date) < str(doc.transaction_date):
+			doc.schedule_date = doc.transaction_date
+		
+		if hasattr(doc,'items'):
+			for row in doc.items:
+				tot_avail_qty = db.sql("""select sum(projected_qty) from `tabBin` as bin
+					where item_code = %s and exists (select company from `tabWarehouse` where name = bin.warehouse and company = %s)
+					group by item_code having sum(projected_qty) < 0""", (row.item_code, doc.company))
+				
+				projected_qty = tot_avail_qty and flt(tot_avail_qty[0][0]) or 0
+				row.qty = abs(projected_qty)
+
+	def postprocess_manufacture(source, doc):
+		doc.material_request_type = "Manufacture"
+		doc.schedule_date = source.delivery_date
+		if str(doc.schedule_date) < str(doc.transaction_date):
+			doc.schedule_date = doc.transaction_date
 
 		if hasattr(doc,'items'):
 			for row in doc.items:
-				tot_avail_qty = db.sql("select projected_qty from `tabBin` \
-					where item_code = %s and warehouse = %s", (row.item_code, row.warehouse))
-				projected_qty = tot_avail_qty and flt(tot_avail_qty[0][0]) or 0
+				tot_avail_qty = db.sql("""select sum(projected_qty) from `tabBin` as bin
+					where item_code = %s and exists (select company from `tabWarehouse` where name = bin.warehouse and company = %s)
+					group by item_code having sum(projected_qty) < 0""", (row.item_code, doc.company))
 				
+				projected_qty = tot_avail_qty and flt(tot_avail_qty[0][0]) or 0
 				row.qty = abs(projected_qty)
 
 	def update_item(source, target, source_parent):
 		target.project = source_parent.project
 
-	def check_items(doc):
-		if db.exists('Product Bundle', doc.item_code):
+	def check_items_purchase(doc):
+		parent_company = frappe.db.get_value(doc.parenttype, doc.parent, "company")
+		if db.exists('Product Bundle', {"new_item_code":doc.item_code}):
 			return False
 		
-		tot_avail_qty = db.sql("select projected_qty from `tabBin` \
-			where item_code = %s and warehouse = %s", (doc.item_code, doc.warehouse))
+		# tot_avail_qty = db.sql("select projected_qty from `tabBin` \
+		#     where item_code = %s and warehouse = %s", (doc.item_code, doc.warehouse))
+		tot_avail_qty = db.sql("""select sum(projected_qty) from `tabBin` as bin
+			where item_code = %s and exists (select company from `tabWarehouse` where name = bin.warehouse and company = %s)
+			group by item_code having sum(projected_qty) < 0""", (doc.item_code, parent_company))
+
 		projected_qty = tot_avail_qty and flt(tot_avail_qty[0][0]) or 0
 
-		if projected_qty < 0:
+		if projected_qty < 0 and frappe.db.get_value("Item", doc.item_code,"default_material_request_type") != "Manufacture":
 			return True
 			
 		return False
 
-	doc = get_mapped_doc("Sales Order", source_name, {
+	def check_items_manufacture(doc):
+		parent_company = frappe.db.get_value(doc.parenttype, doc.parent, "company")
+		if db.exists('Product Bundle', {"new_item_code":doc.item_code}):
+			return False
+		
+		# tot_avail_qty = db.sql("select projected_qty from `tabBin` \
+		#     where item_code = %s and warehouse = %s", (doc.item_code, doc.warehouse))
+		tot_avail_qty = db.sql("""select sum(projected_qty) from `tabBin` as bin
+			where item_code = %s and exists (select company from `tabWarehouse` where name = bin.warehouse and company = %s)
+			group by item_code having sum(projected_qty) < 0""", (doc.item_code, parent_company))
+
+		projected_qty = tot_avail_qty and flt(tot_avail_qty[0][0]) or 0
+
+		if projected_qty < 0 and frappe.db.get_value("Item", doc.item_code,"default_material_request_type") == "Manufacture":
+			return True
+			
+		return False
+
+	# def check_packed_item_condition_purchase(doc):
+	# 	if doc.projected_qty < 0 and frappe.db.get_value("Item", doc.item_code,"default_material_request_type") != "Manufacture":
+	# 		return True
+	# 	else:
+	# 		return False
+
+	# def check_packed_item_condition_manufacture(doc):
+	# 	if doc.projected_qty < 0 and frappe.db.get_value("Item", doc.item_code,"default_material_request_type") == "Manufacture":
+	# 		return True
+	# 	else:
+	# 		return False
+	def check_item_exists(doc,item_list=[]):
+		if item_list:
+			if doc.item_code in item_list:
+				return False
+		return True
+
+	source_doc = frappe.get_doc("Sales Order", source_name)
+	item_list=[each_item.item_code for each_item in source_doc.items]
+	purchase_request_type_doc = get_mapped_doc("Sales Order", source_name, {
 		"Sales Order": {
 			"doctype": "Material Request",
 			"validation": {
@@ -662,7 +794,7 @@ def make_material_request(source_name, target_doc=None):
 				"stock_uom": "uom"
 			},
 			"postprocess": update_item,
-			"condition": check_items
+			"condition": check_items_purchase
 		},
 		"Packed Item": {
 			"doctype": "Material Request Item",
@@ -671,11 +803,57 @@ def make_material_request(source_name, target_doc=None):
 				"stock_uom": "uom"
 			},
 			"postprocess": update_item,
-			"condition": lambda doc: doc.projected_qty < 0
+			# "condition": lambda doc: doc.projected_qty < 0
+			"condition": lambda doc:check_items_purchase(doc) and check_item_exists(doc,item_list)
 		}
-	}, target_doc, postprocess)
+	}, target_doc, postprocess_purchase)
 
-	return doc
+	manufacture_request_type_doc = get_mapped_doc("Sales Order", source_name, {
+		"Sales Order": {
+			"doctype": "Material Request",
+			"validation": {
+				"docstatus": ["=", 1]
+			}
+		},
+		"Sales Order Item": {
+			"doctype": "Material Request Item",
+			"field_map": {
+				"name": "sales_order_item",
+				"parent": "sales_order",
+				"stock_uom": "uom"
+			},
+			"postprocess": update_item,
+			"condition": check_items_manufacture
+		},
+		"Packed Item": {
+			"doctype": "Material Request Item",
+			"field_map": {
+				"parent": "sales_order",
+				"stock_uom": "uom"
+			},
+			"postprocess": update_item,
+			# "condition": lambda doc: doc.projected_qty < 0
+			"condition": lambda doc:check_items_manufacture(doc) and check_item_exists(doc,item_list)
+		}
+	}, target_doc, postprocess_manufacture)
+
+	requests_created = []
+	if purchase_request_type_doc.get('items'):
+		purchase_request_type_doc.save(ignore_permissions= True)
+		requests_created.append(purchase_request_type_doc.name)
+
+	if manufacture_request_type_doc.get('items'):
+		manufacture_request_type_doc.save(ignore_permissions= True)
+		requests_created.append(manufacture_request_type_doc.name)
+
+	form_links = list(map(lambda d: get_link_to_form('Material Request', d), requests_created))
+
+	if requests_created:
+		msg = "Following Material Request Created {}".format(', '.join(form_links))
+	else:
+		msg = "Material Request Not Created Because of Any Item Doesn't have Negative Projected Qty"
+	
+	frappe.msgprint(msg)
 
 @frappe.whitelist()
 def si_before_save(self, method):
@@ -1111,6 +1289,54 @@ def send_sales_invoice_mails():
 				</tr></tbody></table></div><br>
 				We request you to look into the matter and release the payment/s without Further delay. <br><br>
 				If you need any clarifications for any of above invoice/s, please reach out to our Accounts Receivable Team by sending email to cd@eieinstruments.com or call Mr. Mahesh Parmar (079-66040638) or Mr. Hardik Suthar (07966040641).<br><br>
+
+				We have changed  our banker from Indusind Bank and State Bank of India  to Bank of Baroda. Accordingly, we request you to please<br>
+				Cancel our  Indusind bank and State Bank of India details from your records. And update new Bank details of Bank of Baroda, and Hence forth,  release all our payment in Bank of Baroda Account., as per below details.<br>
+				<table border="1" cellspacing="0" cellpadding="0" width="100%" align="center">
+					<thead>
+						<tr>
+							<td colspan="3">Bank Detail</td>
+						</tr>
+						<tr>
+							<td width="30%">Account Name</td>
+							<td width="2%">:</td>
+							<td width="68%">Eie Instruments Pvt Ltd</td>
+						</tr>
+						<tr>
+							<td>Head Office</td>
+							<td>:</td>
+							<td>13TH Floor, 1301/A, Bvr Ek,  Opp.Hotel Inder Residency,<br>
+								Near, Westend Hotel, Ellisbridge, Ahmedabad-380006 </td>
+						</tr>
+						<tr>
+							<td>Bank Name</td>
+							<td>:</td>
+							<td>Bank of Baroda</td>
+						</tr>
+						<tr>
+							<td>Branch Address</td>
+							<td>:</td>
+							<td> (Bapunagar Branch) Ground Floor, Sardar Patel Mall,<br>
+								Bapunagar Main Road, Ahmedabad - 380024</td>
+						</tr>
+						<tr>
+							<td>Bank A/c (CC A/c )</td>
+							<td>:</td>
+							<td>31940500000054</td>
+						</tr>
+						<tr>
+							<td>Micr Code</td>
+							<td>:</td>
+							<td>380012075</td>
+						</tr>
+						<tr>
+							<td>Ifsc/Rtgs/NEFTCode</td>
+							<td>:</td>
+							<td>BARB0BAPUNA ( Fifth Character is Zero) </td>
+						</tr>
+					</thead>
+				</table>
+
 				We will appreciate your immediate response in this regard.<br><br>
 
 				We are registered with MSME vide The Registration No: UDYAM-GJ-01-0051237,  <br>
@@ -1246,7 +1472,8 @@ def make_sales_invoice(source_name, target_doc=None, ignore_permissions=False):
 			"doctype": "Sales Invoice",
 			"field_map": {
 				"party_account_currency": "party_account_currency",
-				"payment_terms_template": "payment_terms_template"
+				"payment_terms_template": "payment_terms_template",
+				"cost_center":"cost_center"
 			},
 			"validation": {
 				"docstatus": ["=", 1]
@@ -1510,7 +1737,7 @@ def send_calibration_mail(days):
 		si_dict.setdefault(key, [])
 		si_dict[key].append(row)
 
-	sender = formataddr(("Abdulbasit", "abdulbasit.eiepl@gmail.com"))
+	sender = formataddr(("Parimal Solanki", "parimal.eiepl@gmail.com"))
 
 	for (invoice_no, person_name, company_name, contact_mobile, contact_email, posting_date), items in si_dict.items():
 		table = ""
@@ -1530,7 +1757,7 @@ def send_calibration_mail(days):
 			frappe.sendmail(recipients=recipients,
 				subject = 'REMINDER FOR CALIBRATION ACTIVITY',
 				sender = sender,
-				cc = ['abdulbasit.eiepl@gmail.com','service.eiepl@gmail.com'],
+				cc = ['parimal.eiepl@gmail.com','service.eiepl@gmail.com'],
 				message = message)
 		except:
 			frappe.publish_realtime(event="cities_progress", message={'status': "FAIL", 'customer': '', 'invoice': ''}, user=frappe.session.user)
@@ -1957,7 +2184,7 @@ def get_transfered_raw_materials(self):
 	transferred_materials = frappe.db.sql("""
 		select
 			item_name, original_item, item_code, qty, sed.t_warehouse as warehouse,
-			description, stock_uom, expense_account, cost_center, batch_no
+			description, stock_uom, expense_account, se.cost_center, batch_no
 		from `tabStock Entry` se,`tabStock Entry Detail` sed
 		where
 			se.name = sed.parent and se.docstatus=1 and se.purpose='Material Transfer for Manufacture'
@@ -2479,6 +2706,10 @@ def contact_validate(self,method):
 				exists_mobile = frappe.db.get_value("Contact Phone",{"parent":parent.parent,"phone":mobile.phone},"parent")
 				if exists_mobile:
 					frappe.throw("Email and Mobile Contact Already exists in: {}".format(frappe.bold(exists_mobile)))
+
+
+def mr_on_submit(self, method):
+    self.set_status(update= True)
 
 def check_if_stock_and_account_balance_synced(posting_date, company, voucher_type=None, voucher_no=None):
 	if not cint(erpnext.is_perpetual_inventory_enabled(company)):
