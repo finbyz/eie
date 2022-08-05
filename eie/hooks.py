@@ -203,6 +203,7 @@ doc_events = {
 		"validate":"eie.eie.doc_events.sales_order.validate",
 	},
 	"Stock Entry": {
+		"on_submit": "eie.api.on_submit",
 		"before_save": "eie.api.SE_before_save",
 		"before_submit": "eie.api.validate_serial_nos",
 		"validate": "eie.api.se_validate"

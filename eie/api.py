@@ -63,6 +63,16 @@ def validate_serial_nos(self, method):
 		else:
 			row.serial_no = ''
 
+def on_submit(self,method):
+
+	if self.stock_entry_type == "Manufacture":
+		if frappe.db.get_single_value("Manufacturing Settings","full_transfer_qty_required") == "Yes" and self.get('work_order'): 
+			wo = frappe.get_doc("Work Order", self.get('work_order'))
+			for item in wo.required_items:
+				if item.required_qty != item.transferred_qty:
+					frappe.throw(f"""Row {item.idx}: Required Qty and Transferred Qty should be same in Work Order {get_link_to_form('Work Order',self.get('work_order'))} to complete the manufacturing Entry <br><br> To ignore this validation you can enable <b>Is Full Transfer Qty Required Before Submitting Stock Entry(Manufacture)?</b> in <b>{get_link_to_form('Manufacturing Settings','Manufacturing Settings')} </b>""")
+
+
 @frappe.whitelist()
 def pe_validate(self,method):
 	for row in self.references:
@@ -726,11 +736,12 @@ def make_material_request(source_name, target_doc=None):
 
 	def check_items_purchase(doc):
 		parent_company = frappe.db.get_value(doc.parenttype, doc.parent, "company")
-		if db.exists('Product Bundle', {"new_item_code":doc.item_code}):
+		if db.exists('Product Bundle', {"new_item_code":doc.item_code}) or not (frappe.db.get_value("Item",doc.item_code,'is_stock_item')):
 			return False
 		
 		# tot_avail_qty = db.sql("select projected_qty from `tabBin` \
 		#     where item_code = %s and warehouse = %s", (doc.item_code, doc.warehouse))
+
 		tot_avail_qty = db.sql("""select sum(projected_qty) from `tabBin` as bin
 			where item_code = %s and exists (select company from `tabWarehouse` where name = bin.warehouse and company = %s)
 			group by item_code having sum(projected_qty) < 0""", (doc.item_code, parent_company))
@@ -1230,7 +1241,7 @@ def emd_sd_mail():
 
 @frappe.whitelist()
 def sales_invoice_mails():
-	if getdate().weekday() == 6 and getdate().isocalendar()[1] % 2 == 1:
+	if getdate().weekday() == 6 and (getdate().isocalendar()[1] + 1) % 2 == 1:
 		enqueue(send_sales_invoice_mails, queue='long', timeout=5000, job_name='Payment Reminder Mails')
 		return "Payment Reminder Mails Send"
 
@@ -2709,7 +2720,7 @@ def contact_validate(self,method):
 
 
 def mr_on_submit(self, method):
-    self.set_status(update= True)
+	self.set_status(update= True)
 
 def check_if_stock_and_account_balance_synced(posting_date, company, voucher_type=None, voucher_no=None):
 	if not cint(erpnext.is_perpetual_inventory_enabled(company)):
@@ -2754,3 +2765,27 @@ def check_if_stock_and_account_balance_synced(posting_date, company, voucher_typ
 # def submit_entry(doc_type,doc_name):
 #     doc = frappe.get_doc(doc_type,doc_name)
 #     doc.submit()
+
+
+# to create repost of stock entry Items
+# def repost_stock_entry_items(voucher_no):
+# 	def create_repost(doc,item_code,warehouse):
+# 		new_doc = frappe.new_doc("Repost Item Valuation")
+# 		new_doc.based_on = "Item and Warehouse"
+# 		new_doc.item_code = item_code
+# 		new_doc.warehouse = warehouse
+# 		new_doc.posting_date = doc.posting_date 
+# 		new_doc.posting_time = doc.posting_time
+# 		new_doc.allow_negative_stock = 0
+# 		new_doc.save()
+# 		new_doc.allow_negative_stock = 0
+# 		new_doc.save()
+# 		new_doc.submit()
+# 		new_doc.db_set("allow_negative_stock", 0)
+# 		print(frappe.get_value("Repost Item Valuation",new_doc.name,'allow_negative_stock'))
+# 	doc =  frappe.get_doc("Stock Entry", voucher_no)
+# 	for row in doc.items:
+# 		if row.get('s_warehouse'):
+# 			create_repost(doc,row.item_code,row.get('s_warehouse'))
+# 		if row.get('t_warehouse'):
+# 			create_repost(doc,row.item_code,row.get('t_warehouse'))
