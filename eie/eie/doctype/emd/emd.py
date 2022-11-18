@@ -31,7 +31,7 @@ class EMD(Document):
 			'party_type':'Customer',
 			'party':self.customer,
 			'debit_in_account_currency':self.amount,
-			'cost_center':'Main - ' + abbr
+			'cost_center': self.cost_center
 		})
 
 

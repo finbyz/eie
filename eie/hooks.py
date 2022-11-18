@@ -173,6 +173,9 @@ doc_events = {
 		"on_submit": "eie.api.si_on_submit",
 		"on_cancel": "eie.api.si_on_cancel",
 	},
+	"Customer": {
+		"validate": "eie.eie.doc_events.customer.validate",
+	},
 	# "Payment Entry": {
 		# "validate" : "eie.api.pe_validate",
 		# "on_submit": "eie.api.pe_on_submit",
@@ -204,8 +207,9 @@ doc_events = {
 	},
 	"Stock Entry": {
 		"on_submit": "eie.api.on_submit",
+		# "before_submit": ,
 		"before_save": "eie.api.SE_before_save",
-		"before_submit": "eie.api.validate_serial_nos",
+		"before_submit": ["eie.api.validate_serial_nos","eie.api.before_submit"],
 		"validate": "eie.api.se_validate"
 	},
 	"Serial No": {
@@ -221,6 +225,7 @@ doc_events = {
 	"Item": {
 		"before_rename": "eie.api.item_before_rename",
 		"validate": "eie.api.item_validate",
+		"validate": "eie.eie.doc_events.item.validate",
 	},	
 	"BOM": {
 		"validate": "eie.api.bom_validate",

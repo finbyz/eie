@@ -63,6 +63,64 @@ def validate_serial_nos(self, method):
 		else:
 			row.serial_no = ''
 
+def before_submit(self,method):
+	if self.stock_entry_type != "Material Transfer for Manufacture":return
+
+	def _validate_work_order(pro_doc):
+		if flt(pro_doc.docstatus) != 1:
+			frappe.throw(_("Work Order {0} must be submitted").format(self.work_order))
+
+		if pro_doc.status == 'Stopped':
+			frappe.throw(_("Transaction not allowed against stopped Work Order {0}").format(self.work_order))
+
+	def update_consumed_qty_for_transfered_items(self):
+		'''
+			Update consumed qty from submitted stock entries
+			against a work order for each stock item
+		'''
+
+		for item in self.required_items:
+			consumed_qty = frappe.db.sql('''
+				SELECT
+					SUM(qty)
+				FROM
+					`tabStock Entry` entry,
+					`tabStock Entry Detail` detail
+				WHERE
+					entry.work_order = %(name)s
+						AND entry.purpose = "Material Transfer for Manufacture"
+						AND entry.docstatus = 1
+						AND detail.parent = entry.name
+						AND detail.s_warehouse IS NOT null
+						AND (detail.item_code = %(item)s
+							OR detail.original_item = %(item)s)
+				''', {
+					'name': self.name,
+					'item': item.item_code
+				})[0][0]
+
+			
+			item.db_set('transferred_qty', flt(consumed_qty), update_modified=True)
+			print(consumed_qty)
+			if not item.required_qty:
+				item.db_set('required_qty', flt(consumed_qty), update_modified=True)
+				print(consumed_qty)
+			
+
+	if self.work_order:
+		pro_doc = frappe.get_doc("Work Order", self.work_order)
+		_validate_work_order(pro_doc)
+		wo_items=frappe.db.get_all("Work Order Item",{"parent":self.work_order},'item_code',pluck='item_code')
+		for each in self.items:
+			if each.item_code not in wo_items:
+				pro_doc.append("required_items",{"item_code":each.item_code})
+		pro_doc.save()
+		# update_consumed_qty_for_transfered_items(pro_doc)
+		# pro_doc = frappe.get_doc("Work Order", self.work_order)
+		# print(pro_doc.required_items[-1].__dict__)
+		# pro_doc.run_method("update_status")
+
+
 def on_submit(self,method):
 
 	if self.stock_entry_type == "Manufacture":
@@ -593,7 +651,7 @@ def new_item_query(doctype, txt, searchfield, start, page_len, filters, as_dict=
 	conditions = []
 	return db.sql("""
 		select
-			tabItem.name, tabItem.item_other_names,tabItem.item_group, if((bin.actual_qty>0),CONCAT_WS(':',bin.company,bin.actual_qty),0)
+			tabItem.name, tabItem.item_other_names, tabItem.item_group_code,tabItem.item_group, if((bin.actual_qty>0),CONCAT_WS(':',bin.company,bin.actual_qty),0)
 		from
 			tabItem
 
@@ -612,6 +670,7 @@ def new_item_query(doctype, txt, searchfield, start, page_len, filters, as_dict=
 				or tabItem.item_name LIKE %(txt)s
 				or tabItem.item_group LIKE %(txt)s
 				or tabItem.item_other_names LIKE %(txt)s
+				or tabItem.item_group_code LIKE %(txt)s
 				or tabItem.barcode LIKE %(txt)s)
 			{fcond} {mcond}
 		order by
@@ -625,7 +684,7 @@ def new_item_query(doctype, txt, searchfield, start, page_len, filters, as_dict=
 			fcond=get_filters_cond(doctype, filters, conditions).replace('%', '%%'),
 			mcond=get_match_cond(doctype).replace('%', '%%')),
 			{
-				"txt": "%s%%" % txt,
+				"txt": "%%%s%%" % txt,
 				"_txt": txt.replace("%", ""),
 				"start": start,
 				"page_len": page_len
@@ -2194,12 +2253,13 @@ def get_transfered_raw_materials(self):
 	# frappe.msgprint('inside get_transfered_raw_materials')
 	transferred_materials = frappe.db.sql("""
 		select
-			item_name, original_item, item_code, qty, sed.t_warehouse as warehouse,
+			item_name, original_item, item_code, sum(qty) as qty, sed.t_warehouse as warehouse,
 			description, stock_uom, expense_account, se.cost_center, batch_no
 		from `tabStock Entry` se,`tabStock Entry Detail` sed
 		where
 			se.name = sed.parent and se.docstatus=1 and se.purpose='Material Transfer for Manufacture'
 			and se.work_order= %s and ifnull(sed.t_warehouse, '') != ''
+		group by sed.item_code, sed.t_warehouse
 	""", self.work_order, as_dict=1)
 
 	materials_already_backflushed = frappe.db.sql("""
@@ -2789,3 +2849,16 @@ def check_if_stock_and_account_balance_synced(posting_date, company, voucher_typ
 # 			create_repost(doc,row.item_code,row.get('s_warehouse'))
 # 		if row.get('t_warehouse'):
 # 			create_repost(doc,row.item_code,row.get('t_warehouse'))
+
+def update_wo_items(self):
+	def _validate_work_order(pro_doc):
+		if flt(pro_doc.docstatus) != 1:
+			frappe.throw(_("Work Order {0} must be submitted").format(self.work_order))
+
+		if pro_doc.status == 'Stopped':
+			frappe.throw(_("Transaction not allowed against stopped Work Order {0}").format(self.work_order))
+
+	if self.work_order:
+		pro_doc = frappe.get_doc("Work Order", self.work_order)
+		_validate_work_order(pro_doc)
+		pro_doc.run_method("update_status")
