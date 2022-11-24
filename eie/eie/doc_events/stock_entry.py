@@ -3,8 +3,8 @@ import frappe
 @frappe.whitelist()
 def insert_se_items(sales_order):
     so_name = sales_order
-    so_items = frappe.db.sql(f""" SELECT * from `tabSales Order Item` Where parent =  "{so_name}" """,as_dict = True)
-    so_packed_items = frappe.db.sql(f""" SELECT * from `tabPacked Item` Where parent =  "{so_name}" """,as_dict = True)
+    so_items = frappe.db.sql(f""" SELECT * from `tabSales Order Item` Where parent =  "{so_name}" order by idx asc""",as_dict = True)
+    so_packed_items = frappe.db.sql(f""" SELECT * from `tabPacked Item` Where parent =  "{so_name}" order by idx asc """,as_dict = True)
     so = so_items + so_packed_items
     
     data = frappe.db.sql(f"""

@@ -321,3 +321,7 @@ sales_invoice.make_delivery_note = make_delivery_note
 from erpnext.selling.doctype.sales_order import sales_order
 from eie.eie.doc_events.sales_order import make_delivery_note
 sales_order.make_delivery_note = make_delivery_note
+
+from eie.eie.report.vehicle_expenses import execute as vehicle_expenses_execute
+from erpnext.hr.report.vehicle_expenses import vehicle_expenses 
+vehicle_expenses.execute = vehicle_expenses_execute
