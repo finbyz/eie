@@ -1,0 +1,752 @@
+<!--forslider-->
+{% set parent_item_group_slider = frappe.get_all("Website Itemgroup",{'parent_website_itemgroup':'All Item Groups','show_in_website':1,'is_group':1,'banner_image':('!=',''),'banner_sub_image':('!=','')}, order_by="priority",limit = 6) %}
+{% set data = {} %}
+{% for item_group_slider in parent_item_group_slider %}
+{% set _ = data.update({item_group_slider.name:frappe.get_all('Website Itemgroup',{'parent_website_itemgroup':item_group_slider.name})}) %}
+{% endfor%}
+<!-------------------------- Section Slider ------------------------>
+<div class="main-slider"> 
+<div class="slider">
+            {% set count = namespace(a=0) %}
+            {% for key, value in data.items() %}
+            {% set count.a = count.a + 1 %}
+            {% set parent_doc = frappe.get_doc("Website Itemgroup",key)%}
+             <div class="box{{count.a}} box" style=" background: url({{ parent_doc.banner_image}}) no-repeat center; background-size:cover;">
+                <div class="bg"></div>
+                <div class="details">
+                    <h1 class="t-white banner-heading" style="line-height: 1.2;">{{ parent_doc.name }}</h1>
+                    <p>
+                       {{ parent_doc.description }}
+                    </p>
+                    <a href="/{{ parent_doc.route }}"><div class="eie-button center-eie-button button-top-space">Learn More<div class="eie-ring eie-btn-bottom"></div> </div>
+                </a>
+                </div>
+                <div class="inner"><img src="{{ parent_doc.banner_sub_image }}" width="555" alt="{{ parent_doc.name }}"></div>
+            </div>
+     {% endfor %}
+
+</div> 
+    <div class="trail">
+   
+    <!--indicators of slider-->
+        <div class="box1 active"></div>
+        <div class="box2"></div>
+        <div class="box3"></div>
+        <div class="box4"></div>
+        <div class="box5"></div>
+    </div>
+<svg xmlns="http://www.w3.org/2000/svg" class="prev" width="56.898" height="91" viewBox="0 0 56.898 91"><path d="M45.5,0,91,56.9,48.452,24.068,0,56.9Z" transform="translate(0 91) rotate(-90)" fill="#fff"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" class="next" width="56.898" height="91" viewBox="0 0 56.898 91"><path d="M45.5,0,91,56.9,48.452,24.068,0,56.9Z" transform="translate(56.898) rotate(90)" fill="#fff"/></svg>
+<!-------------------------- End Slider  ------------------------>
+
+
+
+<!-------------------------- Section AboutUs ------------------------>
+<section class="single-feature" id="our-feature">
+<div class="container-fluid">
+  <div class="row pt-50" style="padding-bottom: 0;">
+    <div class="col-sm-12 col-lg-6 col-md-12">
+      <div class="img-colarge">
+        <div class="colarge-1">
+          <div class="youtube-player video_image" data-id="A49xThsRn3I"></div>
+          <!-- <img src="files/video_image.jpg" alt="video_image" class="video_image"> -->
+        </div>
+        
+        <div class="since-year-outer">
+          <div class="since-year">
+            <span>Since</span>
+            <h3> <strong>1978</strong>
+              <h3>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-12 col-lg-6 col-md-12">
+      <div class="about-content   ">
+          <h2 class="dark-text ">Word-Class Laboratory<br>
+            Testing Equipment</h2>
+        <div class="inner-text  ">
+          <p class="eie-fadeinup">"Established in 1978, EIE Instruments designs, develops and manufactures a comprehensive range of
+            laboratory testing products catering to various engineering and academic sectors, such as Material
+            (Soil, Cement, Asphalt) Testing Laboratories, POY Industires, Textiles Industries, Tiles-Ceramic
+            Industries, Cement & Concrete Industries, Healthcare Industries, Pharmaceutical & Microbiology
+            laboratories, Hospital and Medical Colleges, Universities & research institutes.
+            "</p>
+            
+        <div class="content-bodybtn2">
+      
+      <a href="quality-policy">
+      <div class="eie-btn-up" ><div class="eie-button eie-fadeindown responsive-eie-button">More Details<div class="eie-ring eie-btn-bottom"></div> </div>
+        </a>
+      </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+<!--------------------------- Section Industries------------------------>
+<section class="main-industries" id="industries">
+<div class="">
+<div class="container-fluid">
+  <div class="row pt-50">
+    <div class="col-xl-5 col-lg-12 col-md-12">
+      <div class="">
+         
+          <div class="left wt-small-separator-outer">
+            <div>
+              <h2 class="r-text ">The Best Industry services</h2> 
+             </div>
+             <div>
+              <h5 class="t-white eie-fadeinup">High Performance Services For Multiple Industries and Sectors We
+              Cater TO !!!</h5>
+              </div>
+              <div class="side-content eie-fadeinup">
+              <p>Progressively maintain extensive infomediaries via extensible niches.
+              Capitalize on low hanging fruit to identify a ballpark value added is activity to beta test.
+              Override the igital divide with additional click throughs from fruit to identify a ballpark value
+              added.
+            </p>
+          </div>
+       <!-- <a class="" href="#">-->
+       <!--     <button class="button eie-fadeinup"><span>Contact</span></button>-->
+       <!--</a>-->
+               <a href="#"><div class="eie-button eie-fadeindown responsive-eie-button">Contact <div class="eie-ring eie-btn-bottom"></div> </div>
+        </a>
+     </div>
+</div>
+</div>
+<!--for industry-->
+{% set parent_item_group = frappe.get_all("Website Itemgroup",{'parent_website_itemgroup':'All Item Groups','show_in_website':1,'is_group':1}, order_by="priority") %}
+{% set data = {} %}
+{% for item_group in parent_item_group %}
+{% set _ = data.update({item_group.name:frappe.get_all('Website Itemgroup',{'parent_website_itemgroup':item_group.name})}) %}
+{% endfor%}
+
+<div class="col-xl-7 col-lg-12 col-md-12">
+      <div class="industries-section-content-right" style="background-image:url(files/bg-map-white.png)">
+        <div class="owl-carousel" id="industries-slider">
+            {% set count = namespace(a=0) %}
+            {% for key, value in data.items() %}
+            {% set count.a = count.a + 1 %}
+            {% set parent_doc = frappe.get_doc("Website Itemgroup",key)%}
+              <div class="card mx-1">
+                   <div class="card-content card-body">
+                   <div>
+                        <h5>
+                            {{ parent_doc.name }}
+                        </h5>
+                        <p>{{ parent_doc.description }} </p>
+                        <a href="/{{ parent_doc.route }}" style="color: #000; cursor: pointer; font-weight: bold;" >
+                            <span>Visit &gt;&gt;</span>
+                        </a>
+                    </div>
+                    <div class=" card-button" style="display: flex; justify-content: space-between; border-top: 1px solid #ccc">
+                        <div class="align-self-end wt-icon-box-md site-bg-primary mt-1">  
+                            <span class="icon-cell text-white">
+                                <img alt="{{parent_doc.name}}" width="75" title="{{parent_doc.name}}" src="{{ frappe.db.get_value('Website Itemgroup',key,'item_group_svg') }}" class=" finbyz-industry-icon">
+                            </span>
+                        </div>
+                        <div class="number"> 
+                          <span>
+                           0{{ count.a }}
+                          </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+             {% endfor %}
+          </div>
+        </div>
+       </div>
+     
+     </div>
+    </div>
+   </div>
+  </div>
+</div>
+</div>
+</section>
+
+<!-------------------------Section product Start--------------------------------->
+
+<section class="products " id="productsfield">
+<div class="squares-wrapper">
+  <div class="grid1">
+    <div class="column grid-column1">
+      <div class="square sqAlpha-0"></div>
+      <div class="square sqAlpha-0"></div>
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-0"></div>
+      <div class="square sqAlpha-0"></div>
+    </div>
+    <div class="column grid-column2">
+      <div class="square sqAlpha-0"></div>
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-0"></div>
+    </div>
+    <div class="column grid-column3">
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-09"></div>
+    </div>
+    <div class="column grid-column4">
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+    </div>
+    <div class="column grid-column4">
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+    </div>
+    <div class="column grid-column4">
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+    </div>
+    <div class="column grid-column3">
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-09"></div>
+    </div>
+    <div class="column grid-column2">
+       <div class="square sqAlpha-0"></div>
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-0"></div>
+    </div>
+    <div class="column grid-column1">
+      <div class="square sqAlpha-0"></div>
+      <div class="square sqAlpha-0"></div>
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-0"></div>
+      <div class="square sqAlpha-0"></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="column grid-column1">
+      <div class="square sqAlpha-0"></div>
+      <div class="square sqAlpha-0"></div>
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-0"></div>
+      <div class="square sqAlpha-0"></div>
+    </div>
+    <div class="column grid-column2">
+      <div class="square sqAlpha-0"></div>
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-0"></div>
+    </div>
+    <div class="column grid-column3">
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-09"></div>
+    </div>
+    <div class="column grid-column4">
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+    </div>
+    <div class="column grid-column4">
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+    </div>
+    <div class="column grid-column4">
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+    </div>
+    <div class="column grid-column3">
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-09"></div>
+    </div>
+    <div class="column grid-column2">
+       <div class="square sqAlpha-0"></div>
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-0"></div>
+    </div>
+    <div class="column grid-column1">
+      <div class="square sqAlpha-0"></div>
+      <div class="square sqAlpha-0"></div>
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-0"></div>
+      <div class="square sqAlpha-0"></div>
+    </div>
+  </div>
+  <div class="grid3">
+    <div class="column grid-column1">
+      <div class="square sqAlpha-0"></div>
+      <div class="square sqAlpha-0"></div>
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-0"></div>
+      <div class="square sqAlpha-0"></div>
+    </div>
+    <div class="column grid-column2">
+      <div class="square sqAlpha-0"></div>
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-0"></div>
+    </div>
+    <div class="column grid-column3">
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-09"></div>
+    </div>
+    <div class="column grid-column4">
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+    </div>
+    <div class="column grid-column4">
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+    </div>
+    <div class="column grid-column4">
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+    </div>
+    <div class="column grid-column3">
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-6"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-09"></div>
+    </div>
+    <div class="column grid-column2">
+       <div class="square sqAlpha-0"></div>
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-0"></div>
+    </div>
+    <div class="column grid-column1">
+      <div class="square sqAlpha-0"></div>
+      <div class="square sqAlpha-0"></div>
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-4"></div>
+      <div class="square sqAlpha-2"></div>
+      <div class="square sqAlpha-09"></div>
+      <div class="square sqAlpha-0"></div>
+      <div class="square sqAlpha-0"></div>
+    </div>
+  </div>
+</div>
+<!--hompage products-->
+<div class="container-fluid">
+    <div class="row pt-50">
+        <h2 class="dark-text title-underline">Products</h2>
+    </div>
+    {% set data = frappe.get_all('Website Item Details', fields=['item_name','image','description','route'])  %}
+    {% if data %}
+    <div class="row pb-5">
+      <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
+        <div class="row p-lr">
+          {%- for d in data -%}
+          {% if d.item_name and d.image %}
+             <div class="col-xl-6 my-1">
+               <div class="behind-red-hover white-card row mt-5 {{ loop.cycle('eie-fadeinleft', 'eie-fadeinright') }} ">
+                 <div class="col-md-4 ">
+                      <div class="small-image">
+                        <div class="zoom-in">
+                            <img src="{{ d.image }}" alt="{{ d.item_name }}" width="200">
+                        </div>
+                      </div>
+                </div>
+                   <div class="col-md-8 ">
+                    <div class="firma-aciklama card-body ">
+                      <h5>{{ d.item_name }}</h5>
+                        <div class="content-body">
+                          <p>{{ d.description}}</p>
+                        </div>
+                     </div>
+                   </div>
+                </div>
+           </div>
+           {% endif %}
+        {%- endfor -%}
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="row pb-5">
+      <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
+       <div class="row p-lr">
+        <div class="col-xl-6 ">
+         <!-- <div class="behind-hover-line"> behind-red-hover-down -->
+          <div class="behind-red-hover white-card row mt-5 eie-fadeinleft">
+            <div class="col-md-4 ">
+                 <div class="small-image">
+                  <div class="zoom-in">
+                   <img src="files/aggregate-product.jpg" alt="product1" class=""  height="133" width="200">
+                   </div>
+                 </div>
+           </div>
+              <div class="col-md-8 ">
+               <div class="firma-aciklama card-body ">
+                 <h5>Aggregate Testing Equipment</h5>
+                   <div class="content-body">
+                     <p>The aggregate crushing value provides a relative measure of the resistance of an aggregate to crushing under a gradually applied compressive load.</p>
+                   </div>
+                </div>
+              </div>
+           </div>
+        <!-- </div> -->
+      </div>
+         <div class="col-xl-6">
+          <div class="behind-red-hover white-card row mt-5 eie-fadeinright">
+            <div class="col-md-4"">
+             <div class="small-image">
+               <div class="zoom-in">
+                   <img src="files/bitumen-product.jpg" alt="product2"  height="133" width="200">
+                </div>
+             </div>
+           </div>
+              <div class="col-md-8">
+               <div class="firma-aciklama card-body">
+                 <h5>Bitumen Testing</h5>
+                   <div class="content-body">
+                     <p>The Centrifuge Extractors are used for determination  in hot mples. The mix is added with a solvent and dissolved bitumen is removed by centrifugal .</p>
+                   </div>
+                </div>
+              </div>
+           </div>
+        </div>
+      </div>
+       </div>
+   </div>
+   <div class="row">
+      <div class="col-xl-12 col-lg-12 col-md-12 col-sm-12">
+       <div class="row pb-5 p-lr">
+        <div class="col-xl-6">
+          <div class="behind-red-hover white-card row mt-5 eie-fadeinleft">
+            <div class="col-md-4">
+             <div class="small-image">
+               <div class="zoom-in">
+                    <img src="files/Los-angeles-abrasion-testing-machine.jpg" alt="product3"  height="133" width="200">
+               </div>
+             </div>
+           </div>
+              <div class="col-md-8">
+               <div class="firma-aciklama card-body">
+                 <h5>Cement Testing</h5>
+                   <div class="content-body">
+                     <p>Our complete cement testing instruments and Cement Testing Equipment range includes accelerated curing tank,etc.</p>
+                   </div>
+                </div>
+              </div>
+           </div>
+        </div>
+         <div class="col-xl-6">
+          <div class="behind-red-hover white-card row mt-5 eie-fadeinright">
+            <div class="col-md-4">
+             <div class="small-image">
+               <div class="zoom-in">
+                    <img src="files/acceleraed-curing-tank.jpg" alt="product3"  height="133" width="200">
+               </div>
+             </div>
+           </div>
+              <div class="col-md-8">
+               <div class="firma-aciklama card-body">
+                 <h5>Concrete Testing</h5>
+                   <div class="content-body">
+                     <p> The strength of concrete is generally estimated after 28 days by crushing field test cubes or cylinders made from the representative concrete . </p>
+                   </div>
+                </div>
+              </div>
+           </div>
+        </div>
+      </div>
+       </div>
+   </div>
+    {% endif %}
+</div>
+</section>
+</section>
+
+
+<!-----------------------Section Services Start---------------------------->
+<section class="services" id="service-section">
+<div class="container-fluid">
+  <div class="row pt-50" >
+    <div class="col-xl-7 col-lg-7 col-md-12 col-sm-12">
+      <h2 class="dark-text title-underline">Services</h2>
+        <h5>Validation Services</h5>
+        <p class="eie-fadeinup">Validation is a systematic approach, where data is collected and analyzed to confirm that a process will operate within the specified parameters, whenever required and that it will produce consistent results within the predetermined specifications. The process verifies, if the compliance and quality standards are being met by a product in real time. In short, Validation is defined as a documented program that provides a high degree of assurance that a specific process, method, instrument or system will consistently produce a result meeting pre-determined acceptance criteria.</p>
+
+<p class="eie-fadeinup">In a pharmaceutical facility, the validation program establishes that a company is meeting Current Good Manufacturing Process (cGMP) guidelines that are set for the industry by concerned regulatory bodies.
+        </p>
+    </div>
+    <div class="col-xl-5 col-lg-5 col-md-12 col-sm-12">
+      <div class="image-container">
+        <div class="image-container-overlap">
+          <div class="image-stack">
+            <div class="image-stack__item image-stack__item--top behind-square">
+                  <img src="/files/validation_services.jpg" alt="validation-img" class="img-fluid img2-back-overlay"
+                    style="border-radius: 0; padding: 0;">
+            </div>
+            <div class="image-stack__item image-stack__item--bottom">
+           
+                    <img width="570" src="/files/validation_services.jpg" alt="validation-img" class="img-fluid image-anime "
+                        style="border:0; border-radius: 0; padding: 0; margin-left: 0; box-shadow: 0px 0 50px rgba(0, 0, 0, 0.2);">
+         
+          </div>
+        </div>
+       
+      </div>
+    </div>
+  </div>
+  <div class="clearfix"></div>
+
+
+  <div class="row pt-50" id="mobile-site-view-service">
+    <div class="col-xl-5 col-lg-7 col-md-12 col-sm-12">
+      <!-- <div class="calibration-content-text"> -->
+        <h5>Calibration Services</h5>
+        <p>Calibration facilities are given the highest priorities at our organization. We hold excellent technical
+          know-how to calibrate versatile calibration parameters with National & International Traceability. EIE’s
+          in-house Calibration Lab is accredited by NABL Authorities as per IEC/ISO : 17025 Guidelines.
+          The Laboratory at Precise is very well equipped with the most modern and sophisticated <span>
+            Master Instruments /
+            Equipment & Reference Standards, which are employed for providing precise & accurate calibration
+            services to
+            the prestigious clients. We provide following 2 kinds of calibration services to our esteemed clients.
+            a) In house calibration service
+            b) On-Site calibration Service</span></p>
+      <!-- </div> -->
+    </div>
+    <div class="col-xl-5 col-lg-5 col-md-12 col-sm-12">
+      <div class="image-container">
+        <div class="image-container-overlap">
+          <div class="image-stack">
+            <div class="image-stack__item image-stack__item--top behind-square">
+              <img src="/files/calibration_service.jpg" alt="validation-img" class="img-fluid img2-back-overlay" style="border-radius: 0; padding: 0;">
+            </div>
+            <div class="image-stack__item image-stack__item--bottom">
+              <img width="570" src="/files/calibration_service.jpg" alt="validation-img" class="img-fluid image-anime" style="border:0; border-radius: 0; padding: 0; margin-left: 0; box-shadow: 0px 0 50px rgba(0, 0, 0, 0.2);">
+            </div>
+          </div>
+          </div>
+      </div>
+      <div class="services-img"></div>
+    </div>
+  </div>
+  <div class="row pt-50"  id="web-site-view-service">
+    <div class="col-xl-5 col-lg-5 col-md-12 col-sm-12">
+
+
+      <div class="image-container">
+        <div class="image-container-overlap">
+          <div class="image-stack">
+            <div class="image-stack__item image-stack__item--top behind-square">
+              <img src="/files/calibration_service.jpg" alt="validation-img" class="img-fluid img2-back-overlay" style="border-radius: 0; padding: 0;">
+            </div>
+            <div class="image-stack__item image-stack__item--bottom">
+              <img width="570" src="/files/calibration_service.jpg" alt="validation-img" class="img-fluid image-anime" style="border:0; border-radius: 0; padding: 0; margin-left: 0; box-shadow: 0px 0 50px rgba(0, 0, 0, 0.2);">
+            </div>
+          </div>
+          </div>
+        <!-- <div class="img-fluid img-thumbnail behind-square" style="border-radius: 0;"></div> -->
+      </div>
+    </div>
+    <div class="col-xl-7 col-lg-7 col-md-12 col-sm-12">
+      <div class="calibration-content-text">
+        <h5>Calibration Services</h5>
+        <p class="eie-fadeinup">Calibration facilities are given the highest priorities at our organization. We hold excellent technical
+          know-how to calibrate versatile calibration parameters with National & International Traceability. EIE’s
+          in-house Calibration Lab is accredited by NABL Authorities as per IEC/ISO : 17025 Guidelines.
+          The Laboratory at Precise is very well equipped with the most modern and sophisticated <span>
+            Master Instruments /
+            Equipment & Reference Standards, which are employed for providing precise & accurate calibration
+            services to
+            the prestigious clients. We provide following 2 kinds of calibration services to our esteemed clients.
+            a) In house calibration service
+            b) On-Site calibration Service</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-----------------------Section Services End---------------------------->
+
+<!-------------------------------------------TESTIMONIAL------------------------------------->
+
+<section class="pt-50" id="counter-section">
+<div class="container-fuid">
+    <!-- <h2 class="dark-text mb-5" style="color: white!important;">Our Achivements</h2> -->
+    <div class="row">
+        <div class="col-md-3 col-sm-6 my-2">
+            <div class="counter">
+                <img class="finbyz-industry-icon counter-icon" src="/files/employee.svg" alt="employee image" width="180">
+                <h2 class="counter-title count-number mt-3" data-count="300">0</h2>
+                <h5 class="counter-text">Employee</h5>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 my-2">
+            <div class="counter">
+                <img class="finbyz-industry-icon counter-icon" src="/files/project_done.svg" alt="project image" width="180">
+                <h2 class="counter-title count-number mt-3" data-count="1000">0</h2>
+                <h5 class="counter-text">Project</h5>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 my-2">
+            <div class="counter">
+                <img class="finbyz-industry-icon counter-icon" src="/files/experience.svg" alt="experience imaege" width="180"> 
+                <h2 class="counter-title count-number mt-3" data-count="40">0</h2>
+                <h5 class="counter-text">Experience</h5>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 my-2">
+            <div class="counter">
+                <img class="finbyz-industry-icon counter-icon" src="/files/customer.svg" alt="customer image" width="180">
+                <h2 class="counter-title count-number mt-3" data-count="10000">0</h2>
+                <h5 class="counter-text">Customer</h5>
+            </div>
+        </div>
+    </div>
+</div>
+</section>

@@ -28,8 +28,13 @@ app_include_js = [
 	# "assets/js/comment_desk.min.js",
 	# "assets/js/editor.min.js",
 	# "assets/js/timeline.min.js",
-	"/assets/js/eie_transactions.min.js"
+	"/assets/js/eie_transactions.min.js",
+	"eie.bundle.js"
+
 ]
+app_include_css = ['eie.bundle.css']
+
+
 # include js, css files in header of web template
 # web_include_css = "/assets/eie/css/eie.css"
 # web_include_js = "/assets/eie/js/eie.js"
@@ -276,52 +281,49 @@ scheduler_events = {
 }
 
 # e invoice override
-import erpnext
+# import erpnext
 
-from eie.e_invoice_override import update_invoice_taxes, get_invoice_value_details, make_einvoice
-erpnext.regional.india.e_invoice.utils.update_invoice_taxes = update_invoice_taxes
-erpnext.regional.india.e_invoice.utils.get_invoice_value_details = get_invoice_value_details
-erpnext.regional.india.e_invoice.utils.make_einvoice = make_einvoice
+# from eie.e_invoice_override import update_invoice_taxes, get_invoice_value_details, make_einvoice
+# erpnext.regional.india.e_invoice.utils.update_invoice_taxes = update_invoice_taxes
+# erpnext.regional.india.e_invoice.utils.get_invoice_value_details = get_invoice_value_details
+# erpnext.regional.india.e_invoice.utils.make_einvoice = make_einvoice
 
 #import frappe
 
-from frappe.social.doctype.energy_point_log.energy_point_log import EnergyPointLog
-from eie.override_defaults import revert as my_revert
-from eie.override_defaults import override_after_insert
-#EnergyPointLog.revert = my_revert
-#EnergyPointLog.after_insert = override_after_insert
+# from frappe.social.doctype.energy_point_log.energy_point_log import EnergyPointLog
+# from eie.override_defaults import revert as my_revert
+# from eie.override_defaults import override_after_insert
+# #EnergyPointLog.revert = my_revert
+# #EnergyPointLog.after_insert = override_after_insert
 
-from erpnext.stock import get_item_details
-from eie.api import get_basic_details
-get_item_details.get_basic_details = get_basic_details
+# from erpnext.stock import get_item_details
+# from eie.api import get_basic_details
+# get_item_details.get_basic_details = get_basic_details
 
-from erpnext.manufacturing.doctype.bom.bom import BOM
-from eie.api import get_rm_rate
-BOM.get_rm_rate = get_rm_rate
+# from erpnext.manufacturing.doctype.bom.bom import BOM
+# from eie.api import get_rm_rate
+# BOM.get_rm_rate = get_rm_rate
 
 
-#v13 override
-from eie.v13_override import get_place_of_supply, get_pending_raw_materials
+# # #v13 override
+# from eie.v13_override import get_place_of_supply, get_pending_raw_materials
 
-from erpnext.regional.india import utils
-utils.get_place_of_supply = get_place_of_supply
+# from erpnext.stock.doctype.stock_entry.stock_entry import StockEntry
+# StockEntry.get_pending_raw_materials = get_pending_raw_materials
 
-from erpnext.stock.doctype.stock_entry.stock_entry import StockEntry
-StockEntry.get_pending_raw_materials = get_pending_raw_materials
+# # Override Stock and Accounts diff validation for remove validation 
+# from erpnext.accounts import utils
+# from eie.api import check_if_stock_and_account_balance_synced
+# utils.check_if_stock_and_account_balance_synced = check_if_stock_and_account_balance_synced
 
-# Override Stock and Accounts diff validation for remove validation 
-from erpnext.accounts import utils
-from eie.api import check_if_stock_and_account_balance_synced
-utils.check_if_stock_and_account_balance_synced = check_if_stock_and_account_balance_synced
+# from erpnext.accounts.doctype.sales_invoice import sales_invoice
+# from eie.eie.doc_events.sales_invoice import make_delivery_note
+# sales_invoice.make_delivery_note = make_delivery_note
 
-from erpnext.accounts.doctype.sales_invoice import sales_invoice
-from eie.eie.doc_events.sales_invoice import make_delivery_note
-sales_invoice.make_delivery_note = make_delivery_note
+# from erpnext.selling.doctype.sales_order import sales_order
+# from eie.eie.doc_events.sales_order import make_delivery_note
+# sales_order.make_delivery_note = make_delivery_note
 
-from erpnext.selling.doctype.sales_order import sales_order
-from eie.eie.doc_events.sales_order import make_delivery_note
-sales_order.make_delivery_note = make_delivery_note
-
-from eie.eie.report.vehicle_expenses import execute as vehicle_expenses_execute
-from erpnext.hr.report.vehicle_expenses import vehicle_expenses 
-vehicle_expenses.execute = vehicle_expenses_execute
+# from eie.eie.report.vehicle_expenses import execute as vehicle_expenses_execute
+# from hrms.hr.report.vehicle_expenses import vehicle_expenses 
+# vehicle_expenses.execute = vehicle_expenses_execute
