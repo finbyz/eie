@@ -3,35 +3,70 @@
 
 erpnext.SMSManager = function SMSManager(doc) {
 	var me = this;
+
 	this.setup = function() {
+		
 		var default_msg = {
 			'Lead'				: '',
-			'Opportunity'			: 'Your enquiry has been logged into the system. Ref No: ' + doc.name,
-			'Quotation'			: 'Quotation ' + doc.name + ' has been sent via email. Thanks!',
-			'Sales Order'		: 'Sales Order ' + doc.name + ' has been created against '
-						+ (doc.quotation_no ? ('Quote No:' + doc.quotation_no) : '')
-						+ (doc.po_no ? (' for your PO: ' + doc.po_no) : ''),
-			'Delivery Note'		: 'Items has been delivered against delivery note: ' + doc.name
-						+ (doc.po_no ? (' for your PO: ' + doc.po_no) : ''),
-			'Sales Invoice': 'Invoice ' + doc.name + ' has been sent via email '
-						+ (doc.po_no ? (' for your PO: ' + doc.po_no) : ''),
-			'Material Request'			: 'Material Request ' + doc.name + ' has been raised in the system',
-			'Purchase Order'	: 'Purchase Order ' + doc.name + ' has been sent via email',
-			'Purchase Receipt'	: 'Items has been received against purchase receipt: ' + doc.name
+			'Opportunity'		: 'Your enquiry has been logged into the system. Ref No: ' + doc.name +'Contact',
+			'Quotation'			: 'Quotation No. ' + doc.name + ` has been sent via email. Please check and confirm. Thanks!.\nContact\nEIEIPL`,
+			'Sales Order'		: 'Sales Order No. ' + doc.name + ' has been created against your PO :'+ doc.po_no +" "+ ` Please check and confirm.\nContact\nEIEIPL`,
+
+			'Delivery Note'		: 'Items has been delivered against delivery note: ' + doc.name + (doc.po_no ? (' for your PO: ' + doc.po_no) : '')+`\nContact`,
+
+			'Sales Invoice': 'Goods against your PO No' +doc.po_no + ` has been dispatched. Please check your mail for details and confirm the receipt in due course.\nContact\nEIEIPL`,
+
+			'Material Request' : 'Material Request ' + doc.name + ` has been raised in the system.\nContact\nEIEIPL`,
+	
+
+			'Purchase Order'	: doc.name + ` has been sent via email . Please check and confirm the order.\nContact\nEIEIPL`,
+			'Purchase Receipt'	: 'Items has been received against purchase receipt: ' + doc.name +`\nContact\nEIEIPL`,
+			'Payment Entry' : "Payment of Rs."+' '+ doc.paid_amount +' '+ `released against your Invoice. Please confirm when received.\nContact\nEIEIPL`
 		}
 
 		if (in_list(['Sales Order', 'Delivery Note', 'Sales Invoice'], doc.doctype))
-			this.show(doc.contact_person, 'Customer', doc.customer, '', default_msg[doc.doctype]);
+		frappe.model.get_value('User', frappe.session.user , 'phone' ,(r)=>{
+			let text = default_msg[doc.doctype].replace("Contact", r.phone)
+			this.show(doc.contact_person, 'Customer', doc.customer, '', text);
+		})
+			
 		else if (doc.doctype === 'Quotation')
-			this.show(doc.contact_person, doc.quotation_to, doc.party_name, '', default_msg[doc.doctype]);
+		frappe.model.get_value('User', frappe.session.user , 'phone' ,(r)=>{
+			let text = default_msg[doc.doctype].replace("Contact", r.phone)
+			this.show(doc.contact_person, 'Customer', doc.party_name, '', text);
+		})
+			
+		
 		else if (in_list(['Purchase Order', 'Purchase Receipt'], doc.doctype))
-			this.show(doc.contact_person, 'Supplier', doc.supplier, '', default_msg[doc.doctype]);
+		frappe.model.get_value('User', frappe.session.user , 'phone' ,(r)=>{
+			let text = default_msg[doc.doctype].replace("Contact", r.phone)
+			this.show(doc.contact_person, 'Supplier', doc.supplier, '', text);
+		})
+			
 		else if (doc.doctype == 'Lead')
-			this.show('', '', '', doc.mobile_no, default_msg[doc.doctype]);
+		frappe.model.get_value('User', frappe.session.user , 'phone' ,(r)=>{
+			let text = default_msg[doc.doctype].replace("Contact", r.phone)
+			this.show('', '', '', doc.mobile_no, text);
+		})
+			
 		else if (doc.doctype == 'Opportunity')
-			this.show('', '', '', doc.contact_no, default_msg[doc.doctype]);
+		frappe.model.get_value('User', frappe.session.user , 'phone' ,(r)=>{
+			let text = default_msg[doc.doctype].replace("Contact", r.phone)
+			this.show('', '', '', doc.contact_no, text);
+		})
+			
 		else if (doc.doctype == 'Material Request')
-			this.show('', '', '', '', default_msg[doc.doctype]);
+		frappe.model.get_value('User', frappe.session.user , 'phone' ,(r)=>{
+			let text = default_msg[doc.doctype].replace("Contact", r.phone)
+			this.show('', '', '', '', text);
+		})
+		else if (doc.doctype == 'Payment Entry')
+		frappe.model.get_value('User', frappe.session.user , 'phone' ,(r)=>{
+			let text = default_msg[doc.doctype].replace("Contact", r.phone)
+			this.show(doc.contact_person, doc.party_type ,doc.party , '', text);
+			})
+			
+		
 
 	};
 

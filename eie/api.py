@@ -418,10 +418,9 @@ def cancel_sales_order(self):
 def dn_before_save(self, method):
 	calculate_combine(self)
 
-@frappe.whitelist()
 def dn_on_submit(self, method):
-	if db.exists("Company", self.customer):
-		if not db.exists("Purchase Order", self.po_no):
+	if frappe.db.exists("Company", self.customer):
+		if not frappe.db.exists("Purchase Order", self.po_no):
 			url = get_url_to_form("Purchase Order", self.po_no)
 			frappe.throw("The Purchase Order <b><a href='{url}'>{name}</a></b> might have been cancelled or does not exist!".format(url=url, name=self.po_no))
 		else:
@@ -645,8 +644,12 @@ def filter_installation_note(doctype, txt, searchfield, start, page_len, filters
 # 				"start": start,
 # 				"page_len": page_len
 # 			}, as_dict=as_dict)
+@frappe.whitelist()
+def get_contact(user):
+	return frappe.db.get_value('User' , user , 'mobile_no')
 
 @frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
 def new_item_query(doctype, txt, searchfield, start, page_len, filters, as_dict=False):
 	conditions = []
 	return db.sql("""
@@ -674,10 +677,10 @@ def new_item_query(doctype, txt, searchfield, start, page_len, filters, as_dict=
 				or tabItem.barcode LIKE %(txt)s)
 			{fcond} {mcond}
 		order by
-			bin.actual_qty desc,
 			default_selection desc,
 			if(locate(%(_txt)s, tabItem.name), locate(%(_txt)s, tabItem.name), 99999),
-			if(locate(%(_txt)s, item_name), locate(%(_txt)s, item_name), 99999)
+			if(locate(%(_txt)s, item_name), locate(%(_txt)s, item_name), 99999),
+			bin.actual_qty desc
 			
 		limit %(start)s, %(page_len)s """.format(
 			key=searchfield,

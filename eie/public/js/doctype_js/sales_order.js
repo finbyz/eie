@@ -597,7 +597,12 @@ erpnext.selling.SalesOrderController = erpnext.selling.SellingController.extend(
 		});
 		d.show();
 	},
-	close_sales_order: function(){
+	close_sales_order: function(frm){
+		if(cur_frm.doc.reason_ == null || cur_frm.doc.reason_ == "" ){
+			cur_frm.set_df_property('reason_', 'reqd', 1);
+			frappe.throw("Mention a Reason to close sales order	");
+		}
+		// frappe.throw("Type Reason to Close this sales order")
 		this.frm.cscript.update_status("Close", "Closed")
 		// var me = this;
 		// frappe.call({
@@ -645,3 +650,4 @@ frappe.ui.form.on("Sales Order", {
         }
     }
 });
+

@@ -23,6 +23,7 @@ app_logo_url = "/files/favicon.png"
 # 	"assets/css/summernote.min.css"
 # ]
 app_include_js = [
+	"/assets/js/sms_manager.js",
 	# "/assets/eie/js/eie.min.js",
 	# "assets/js/summernote.min.js",
 	# "assets/js/comment_desk.min.js",
@@ -53,7 +54,7 @@ doctype_js = {
 	"Purchase Invoice": "public/js/doctype_js/purchase_invoice.js",
 	"Purchase Order": "public/js/doctype_js/purchase_order.js",
 	"Purchase Receipt": "public/js/doctype_js/purchase_receipt.js",
-
+	"Payment Entry" : "public/js/doctype_js/payment_entry.js"
 }
 
 # Home Pages
@@ -218,9 +219,10 @@ doc_events = {
 	"Delivery Note": {
 		"validate": "eie.api.dn_validate",
 		"before_save": "eie.api.dn_before_save",
-		"on_submit": "eie.api.dn_on_submit",
 		"on_cancel": "eie.api.dn_on_cancel",
 		"validate":"eie.eie.doc_events.delivery_note.validate",
+		"on_submit":["eie.eie.doc_events.delivery_note.on_submit", 
+		"eie.api.dn_on_submit"]
 	},
 	"Item": {
 		"before_rename": "eie.api.item_before_rename",
@@ -325,3 +327,7 @@ sales_order.make_delivery_note = make_delivery_note
 from eie.eie.report.vehicle_expenses import execute as vehicle_expenses_execute
 from erpnext.hr.report.vehicle_expenses import vehicle_expenses 
 vehicle_expenses.execute = vehicle_expenses_execute
+
+from erpnext.controllers.stock_controller import StockController
+from eie.eie.doc_events.stock_controller import validate_inspection
+StockController.validate_inspection = validate_inspection
