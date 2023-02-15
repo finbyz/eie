@@ -6,7 +6,7 @@ from frappe import _
 def get_place_of_supply(party_details, doctype):
 	if not frappe.get_meta('Address').has_field('gst_state'): return
 
-	if doctype in ("Sales Invoice", "Delivery Note", "Sales Order"):
+	if doctype in ("Sales Invoice", "Delivery Note", "Sales Order", "Quotation"):
 		address_name = party_details.shipping_address_name or party_details.customer_address # finbyz change
 	elif doctype in ("Purchase Invoice", "Purchase Order", "Purchase Receipt"):
 		address_name = party_details.shipping_address or party_details.supplier_address
