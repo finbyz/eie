@@ -218,7 +218,7 @@ doc_events = {
 	},
 	"Delivery Note": {
 		"validate": "eie.api.dn_validate",
-		"before_save": "eie.api.dn_before_save",
+		"before_validate": "eie.api.dn_before_save",
 		"on_cancel": "eie.api.dn_on_cancel",
 		"validate":"eie.eie.doc_events.delivery_note.validate",
 		"on_submit":["eie.eie.doc_events.delivery_note.on_submit", 
@@ -280,7 +280,8 @@ scheduler_events = {
 # e invoice override
 import erpnext
 
-from eie.e_invoice_override import update_invoice_taxes, get_invoice_value_details, make_einvoice
+from eie.e_invoice_override import update_invoice_taxes, get_invoice_value_details, make_einvoice,validate_document_name as eie_validate_document_name
+erpnext.regional.india.utils.validate_document_name = eie_validate_document_name
 erpnext.regional.india.e_invoice.utils.update_invoice_taxes = update_invoice_taxes
 erpnext.regional.india.e_invoice.utils.get_invoice_value_details = get_invoice_value_details
 erpnext.regional.india.e_invoice.utils.make_einvoice = make_einvoice
@@ -300,6 +301,10 @@ get_item_details.get_basic_details = get_basic_details
 from erpnext.manufacturing.doctype.bom.bom import BOM
 from eie.api import get_rm_rate
 BOM.get_rm_rate = get_rm_rate
+
+# from eie.api import set_attribute_context, get_context
+# from erpnext.e_commerce.doctype.website_item.website_item import WebsiteItem
+# WebsiteItem.get_context = get_context
 
 
 #v13 override
@@ -331,3 +336,4 @@ vehicle_expenses.execute = vehicle_expenses_execute
 from erpnext.controllers.stock_controller import StockController
 from eie.eie.doc_events.stock_controller import validate_inspection
 StockController.validate_inspection = validate_inspection
+

@@ -1,4 +1,4 @@
-import frappe, json
+import frappe, json, re
 from frappe import _, bold
 from frappe.utils import cstr, cint, flt, getdate, format_date
 from erpnext.regional.india.utils import get_gst_accounts, get_place_of_supply
@@ -220,3 +220,24 @@ def get_port_address_details(address_name, skip_gstin_validation):
 		address_line2=sanitize_for_json(addr.address_line2),
 		pincode= addr.pincode, state_code= addr.gst_state_number
 	))
+
+GST_INVOICE_NUMBER_FORMAT = re.compile(r"^[a-zA-Z0-9\-/]+$")   #alphanumeric and - /
+def validate_document_name(doc, method=None):
+	"""Validate GST invoice number requirements."""
+
+	country = frappe.get_cached_value("Company", doc.company, "country")
+	einvoice_enable = frappe.db.get_single_value("E Invoice Settings",'enable')
+	# Date was chosen as start of next FY to avoid irritating current users.
+	if country != "India" or getdate(doc.posting_date) < getdate("2021-04-01"):
+		return
+	
+	if len(doc.name) > 14 and not frappe.db.get_single_value("System Settings",'disable_invoice_length_check') and not doc.amended_from  and not doc.is_return:
+		frappe.throw(_(f"For GST fillings Invoice name should be less than 16 digits, to keep scope of amened documents please ensure invoice number doesn't go beyond 14 digits {doc.name}"))
+
+	if einvoice_enable and len(doc.name) > 16:
+		frappe.throw(_("Maximum length of document number should be 16 characters as per GST rules. Please change the naming series."))
+
+	if not GST_INVOICE_NUMBER_FORMAT.match(doc.name):
+		frappe.throw(_("Document name should only contain alphanumeric values, dash(-) and slash(/) characters as per GST rules. Please change the naming series."))
+
+
