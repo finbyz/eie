@@ -167,7 +167,7 @@ override_doctype_dashboards = {
 	"Material Request": "eie.eie.dashboard.material_request.get_data",
 }
 override_doctype_class = {
-    "Website Item": "eie.eie.doc_events.website_item.WebsiteItem"
+    "Website Item": "eie.eie.doc_events.website_item.CustomWebsiteItem"
 }
 doc_events = {
 	"Sales Invoice": {

@@ -7,55 +7,9 @@ from erpnext.setup.doctype.item_group.item_group import (
 )
 from frappe.website.doctype.website_slideshow.website_slideshow import get_slideshow
 from erpnext.e_commerce.doctype.item_review.item_review import get_item_reviews
-from erpnext.e_commerce.doctype.website_item.website_item import WebsiteGenerator, set_attribute_context, get_context, check_if_user_is_customer
+from erpnext.e_commerce.doctype.website_item.website_item import WebsiteItem, check_if_user_is_customer
 
-class WebsiteItem(WebsiteGenerator):
-
-    def set_attribute_context(self, context):
-            if not self.has_variants:
-                return
-
-            attribute_values_available = {}
-            context.attribute_values = {}
-            context.selected_attributes = {}
-
-            # load attributes
-            for v in context.variants:
-                v.attributes = frappe.get_all("Item Variant Attribute",
-                    fields=["attribute", "attribute_value"],
-                    filters={"parent": v.name})
-                # make a map for easier access in templates
-                v.attribute_map = frappe._dict({})
-                for attr in v.attributes:
-                    v.attribute_map[attr.attribute] = attr.attribute_value
-
-                for attr in v.attributes:
-                    values = attribute_values_available.setdefault(attr.attribute, [])
-                    if attr.attribute_value not in values:
-                        values.append(attr.attribute_value)
-
-                    if v.name == context.variant.name:
-                        context.selected_attributes[attr.attribute] = attr.attribute_value
-
-            # filter attributes, order based on attribute table
-            for attr in self.attributes:
-                values = context.attribute_values.setdefault(attr.attribute, [])
-
-                if cint(frappe.db.get_value("Item Attribute", attr.attribute, "numeric_values")):
-                    for val in sorted(attribute_values_available.get(attr.attribute, []), key=flt):
-                        values.append(val)
-
-                else:
-                    # get list of values defined (for sequence)
-                    for attr_value in frappe.db.get_all("Item Attribute Value",
-                        fields=["attribute_value"],
-                        filters={"parent": attr.attribute}, order_by="idx asc"):
-
-                        if attr_value.attribute_value in attribute_values_available.get(attr.attribute, []):
-                            values.append(attr_value.attribute_value)
-
-            context.variant_info = json.dumps(context.variants)
-
+class CustomWebsiteItem(WebsiteItem):
     def get_context(self, context):
             context.show_search = True
             context.search_link = "/search"
@@ -119,3 +73,48 @@ class WebsiteItem(WebsiteGenerator):
                     break
 
         return True if customer else False
+
+def set_attribute_context(self, context):
+    if not self.has_variants:
+        return
+
+    attribute_values_available = {}
+    context.attribute_values = {}
+    context.selected_attributes = {}
+
+    # load attributes
+    for v in context.variants:
+        v.attributes = frappe.get_all("Item Variant Attribute",
+            fields=["attribute", "attribute_value"],
+            filters={"parent": v.name})
+        # make a map for easier access in templates
+        v.attribute_map = frappe._dict({})
+        for attr in v.attributes:
+            v.attribute_map[attr.attribute] = attr.attribute_value
+
+        for attr in v.attributes:
+            values = attribute_values_available.setdefault(attr.attribute, [])
+            if attr.attribute_value not in values:
+                values.append(attr.attribute_value)
+
+            if v.name == context.variant.name:
+                context.selected_attributes[attr.attribute] = attr.attribute_value
+
+    # filter attributes, order based on attribute table
+    for attr in self.attributes:
+        values = context.attribute_values.setdefault(attr.attribute, [])
+
+        if cint(frappe.db.get_value("Item Attribute", attr.attribute, "numeric_values")):
+            for val in sorted(attribute_values_available.get(attr.attribute, []), key=flt):
+                values.append(val)
+
+        else:
+            # get list of values defined (for sequence)
+            for attr_value in frappe.db.get_all("Item Attribute Value",
+                fields=["attribute_value"],
+                filters={"parent": attr.attribute}, order_by="idx asc"):
+
+                if attr_value.attribute_value in attribute_values_available.get(attr.attribute, []):
+                    values.append(attr_value.attribute_value)
+
+    context.variant_info = json.dumps(context.variants)
