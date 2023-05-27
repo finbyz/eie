@@ -401,6 +401,7 @@ def create_sales_order(self):
 		})
 
 	so.tc_name = 'Sales Order Conditions'
+	so.flags.ignore_mandatory = True
 	so.save()
 	self.db_set('sales_order', so.name)
 	so.submit()
@@ -868,7 +869,8 @@ def make_material_request(source_name, target_doc=None):
 			"field_map": {
 				"name": "sales_order_item",
 				"parent": "sales_order",
-				"stock_uom": "uom"
+				"stock_uom": "uom",
+				"description": "description"
 			},
 			"postprocess": update_item,
 			"condition": check_items_purchase
@@ -2984,3 +2986,8 @@ def check_if_user_is_customer(user=None):
 				break
 
 	return True if customer else False
+
+def check_bom_company(self , method):
+	company = frappe.db.get_value("BOM" , self.bom_no , 'company')
+	if self.company != company:
+		frappe.throw("BOM #<b>{}</b> Is Not From Company {}".format(self.bom_no , self.company))

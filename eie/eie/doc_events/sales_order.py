@@ -4,7 +4,9 @@ from frappe.model.utils import get_fetch_values
 from erpnext.stock.doctype.item.item import get_item_defaults
 from erpnext.setup.doctype.item_group.item_group import get_item_group_defaults
 from frappe.utils import cstr, flt, getdate, cint, nowdate, add_days, get_link_to_form, strip_html
+
 def validate(self,method):
+    validate_cost_center(self, method)
     for row in self.items:
         row.cost_center = self.cost_center
 
@@ -77,3 +79,9 @@ def make_delivery_note(source_name, target_doc=None, skip_item_mapping=False):
 	target_doc = get_mapped_doc("Sales Order", source_name, mapper, target_doc, set_missing_values)
 
 	return target_doc
+
+def validate_cost_center(self, method):
+	cost_center = self.cost_center
+	cc = frappe.db.get_value("Cost Center", cost_center, "disabled")
+	if cc == 1:
+		frappe.throw("Cost Center is Disabled.")

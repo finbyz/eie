@@ -54,7 +54,8 @@ doctype_js = {
 	"Purchase Invoice": "public/js/doctype_js/purchase_invoice.js",
 	"Purchase Order": "public/js/doctype_js/purchase_order.js",
 	"Purchase Receipt": "public/js/doctype_js/purchase_receipt.js",
-	"Payment Entry" : "public/js/doctype_js/payment_entry.js"
+	"Payment Entry" : "public/js/doctype_js/payment_entry.js",
+    "Work Order":"public/js/doctype_js/work_order.js"
 }
 
 # Home Pages
@@ -161,7 +162,8 @@ doctype_js = {
 # }
 override_whitelisted_methods = {
 	"frappe.utils.print_format.download_pdf": "eie.print_format.download_pdf",
-	"erpnext.manufacturing.doctype.bom.bom.get_bom_diff": "eie.bom_override.get_bom_diff"
+	"erpnext.manufacturing.doctype.bom.bom.get_bom_diff": "eie.bom_override.get_bom_diff",
+    "erpnext.accounts.doctype.payment_entry.payment_entry.get_payment_entry":"eie.pe_override.get_payment_entry"
 }
 override_doctype_dashboards = {
 	"Material Request": "eie.eie.dashboard.material_request.get_data",
@@ -260,6 +262,9 @@ doc_events = {
 	"Contact":{
 		"validate":"eie.api.contact_validate"
 	},
+    "Work Order":{
+        "validate":"eie.api.check_bom_company"
+	}
 	
 	# ("Sales Invoice", "Purchase Invoice", "Payment Request", "Payment Entry", "Journal Entry", "Material Request", "Purchase Order", "Work Order", "Production Plan", "Stock Entry", "Quotation", "Sales Order", "Delivery Note", "Purchase Receipt", "Packing Slip"): {
 	# 	"before_naming": "eie.api.docs_before_naming",
@@ -308,6 +313,11 @@ BOM.get_rm_rate = get_rm_rate
 # from eie.api import set_attribute_context, get_context
 # from erpnext.e_commerce.doctype.website_item.website_item import WebsiteItem
 # WebsiteItem.get_context = get_context
+
+#reorder item for material request 
+from erpnext.stock import reorder_item 
+from eie.reorder_item import reorder_item as reorder_item_eie
+reorder_item.reorder_item = reorder_item_eie
 
 
 #v13 override
