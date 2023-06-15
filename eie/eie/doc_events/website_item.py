@@ -23,16 +23,16 @@ class CustomWebsiteItem(WebsiteItem):
 					variant = context.variants[0]
 			if variant:
 				context.variant = frappe.get_doc("Item", variant)
-				# for fieldname in ("website_image", "website_image_alt", "web_long_description", "description",
-				# 						"website_specifications"):
-				# 	if context.variant.get(fieldname):
-				# 		value = context.variant.get(fieldname)
-				# 		if isinstance(value, list):
-						# 	value = [d.as_dict() for d in value]
+				for fieldname in ("website_image", "website_image_alt", "web_long_description", "description",
+										"website_specifications"):
+					if context.variant.get(fieldname):
+						value = context.variant.get(fieldname)
+						if isinstance(value, list):
+							value = [d.as_dict() for d in value]
 
-						# context[fieldname] = value
+						context[fieldname] = value
 			# if self.has_variants:
-				# context.variant = context.variants[0]
+			# 	context.variant = context.variants[0]
 			context.parents = get_parent_item_groups(self.item_group, from_item=True)  # breadcumbs
 
 			context.attributes = self.attributes = frappe.get_all(
