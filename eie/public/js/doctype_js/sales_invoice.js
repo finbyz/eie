@@ -15,6 +15,13 @@ frappe.ui.form.on("Sales Invoice", {
 			}
 			
 		});
+        cur_frm.set_query("bank_account", "bank_accounts", function(doc) {
+			return {
+				filters: {
+					"company": doc.company
+				}
+			}
+		});
     },
     cost_center:function(frm){
         if(frm.doc.cost_center){

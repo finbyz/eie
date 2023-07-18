@@ -148,6 +148,14 @@ erpnext.selling.SalesOrderController = erpnext.selling.SellingController.extend(
 			}
 			
 		});
+		
+		cur_frm.set_query("bank_account", "bank_accounts", function(doc) {
+			return {
+				filters: {
+					"company": doc.company
+				}
+			}
+		});
 	},
 
 	create_pick_list() {
