@@ -249,8 +249,10 @@ doc_events = {
 		"before_save": "eie.api.customer_before_save",
 	},
 	"Material Request": {
+		"before_validate": "eie.api.before_validate",
 		"before_save": "eie.api.mr_before_save",
 		"on_submit":"eie.api.mr_on_submit",
+        "validate": "eie.eie.doc_events.material_request.check_item"
 	},
 	"Payment Entry": {
 		"before_submit": "eie.api.pe_on_submit",

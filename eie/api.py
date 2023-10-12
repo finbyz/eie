@@ -171,8 +171,27 @@ def update_industry(self):
 		lead.industry = self.industry
 		lead.save()
 
+def before_validate(self, method):
+	if frappe.session.user == "Administrator":
+		pass
+		# remove_nill_qty(self)
+
+
 def mr_before_save(self, method):
 	set_default_supplier(self)
+
+def remove_nill_qty(self):
+	new_list = self.items.copy()
+	for row in new_list:
+		frappe.msgprint("First " + str(row.item_code) + " - " + str(row.qty))
+		if row.qty == 0:
+			# pass
+			# frappe.msgprint(str(row.item_code) + " - " + str(row.qty))
+			frappe.msgprint(str(row.item_code) + " - " + str(row.qty))
+			self.items.remove(row)
+	
+	for row in self.items:
+		frappe.msgprint("Final " + str(row.item_code) + " - " + str(row.qty))
 
 def set_default_supplier(self):
 	for row in self.items:
@@ -1538,7 +1557,8 @@ def make_sales_invoice(source_name, target_doc=None, ignore_permissions=False):
 		target.amount = flt(source.amount) - flt(source.billed_amt)
 		target.base_amount = target.amount * flt(source_parent.conversion_rate)
 		target.qty = target.amount / flt(source.rate) if (source.rate and source.billed_amt) else source.qty - source.returned_qty
-
+		if frappe.session.user == "Administrator":
+			frappe.throw(str(target.qty))
 		if source_parent.project:
 			target.cost_center = frappe.db.get_value("Project", source_parent.project, "cost_center")
 		if not target.cost_center and target.item_code:
