@@ -64,7 +64,8 @@ def get_invoice_value_details(invoice):
 def get_transaction_details(invoice):
 	supply_type = ''
 	if invoice.gst_category == 'Registered Regular': supply_type = 'B2B'
-	elif invoice.gst_category == 'SEZ': supply_type = 'SEZWOP'
+	elif invoice.gst_category == 'SEZ' and invoice.export_type == "Without Payment of Tax": supply_type = 'SEZWOP'
+	elif invoice.gst_category == 'SEZ' and invoice.export_type == "With Payment of Tax": supply_type = 'SEZWP'
 	# elif invoice.gst_category == 'Overseas': supply_type = 'EXPWOP'
 	elif invoice.gst_category == 'Overseas' and invoice.export_type == "Without Payment of Tax": supply_type = 'EXPWOP' # Finbyz Changes
 	elif invoice.gst_category == 'Overseas' and invoice.export_type == "With Payment of Tax": supply_type = 'EXPWP' # Finbyz Changes
