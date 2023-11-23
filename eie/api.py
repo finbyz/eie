@@ -1386,7 +1386,7 @@ def send_sales_invoice_mails():
 					</td>
 				</tr></tbody></table></div><br>
 				We request you to look into the matter and release the payment/s without Further delay. <br><br>
-				If you need any clarifications for any of above invoice/s, please reach out to our Accounts Receivable Team by sending email to cd@eieinstruments.com or call Mr. Mahesh Parmar (079-66040638) or Mr. Hardik Suthar (07966040641).<br><br>
+				If you need any clarifications for any of above invoice/s, please reach out to our Accounts Receivable Team by sending email to cd@eieinstruments.com or call Mr. Mahesh Parmar (079-35208303) or Mr. Hardik Suthar (079-35208313).<br><br>
 
 				We have changed  our banker from Indusind Bank and State Bank of India  to Bank of Baroda. Accordingly, we request you to please<br>
 				Cancel our  Indusind bank and State Bank of India details from your records. And update new Bank details of Bank of Baroda, and Hence forth,  release all our payment in Bank of Baroda Account., as per below details.<br>
