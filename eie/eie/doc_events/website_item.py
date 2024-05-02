@@ -144,7 +144,7 @@ def set_disabled_attributes(self, context):
 		
 		
 		attributes = [attr.attribute for attr in self.attributes]
-
+		
 		context.test = []
 		context.a = []
 		context.b = []
@@ -174,11 +174,10 @@ def set_disabled_attributes(self, context):
 			# 	if not (set(combination) - set(variant["combination"])):
 			# 		return True
 			for variant in context.b:
-			
 				if len(variant.attributes) < len(attributes):
 					continue
 
-				if "combination" not in variant:
+				if combination not in variant:
 
 					ref_combination = []
 
@@ -186,11 +185,11 @@ def set_disabled_attributes(self, context):
 						idx = attributes.index(attr.attribute)
 						ref_combination.insert(idx, attr.attribute_value)
 
-					variant["combination"] = ref_combination
+					variant[combination] = ref_combination
 					if frappe.session.user == "Administrator":
-						context.vc.append(variant["combination"])
+						context.vc.append(variant[combination])
 
-				if not (set(combination) - set(variant["combination"])):
+				if not (set(combination) - set(variant[combination])):
 					context.previous_attribute.append(set(combination))
 					context.comb.append(list(combination))
 					return True
@@ -215,9 +214,14 @@ def set_disabled_attributes(self, context):
 				if frappe.session.user == "Administrator":
 					context.a.append(context.attribute_values[attr.attribute])
 			combination_source.append(context.attribute_values[attr.attribute])
+			# if frappe.session.user == "Administrator":
+			# frappe.throw(combination_source)	
 			
 			
 			for combination in itertools.product(*combination_source):
 				if not find_variant(combination):
 					context.disabled_attributes.setdefault(attr.attribute, []).append(combination[-1])
+					# frappe.throw(attr.attribute)
+					# if combination:
+					# 	context.disabled_attributes.setdefault("test",[]).append(combination_source)
 		

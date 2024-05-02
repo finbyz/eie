@@ -31,6 +31,7 @@ from erpnext.accounts.utils import get_stock_accounts,get_stock_and_account_bala
 from erpnext.setup.doctype.item_group.item_group import get_parent_item_groups
 from frappe.website.doctype.website_slideshow.website_slideshow import get_slideshow
 from erpnext.e_commerce.doctype.item_review.item_review import get_item_reviews
+import time
 
 @frappe.whitelist()
 def validate_serial_nos(self, method):
@@ -258,7 +259,8 @@ def update_actual_serial_no(self, method):
 @frappe.whitelist()
 def si_on_submit(self, method):
     if db.exists("Company", self.customer):
-        create_purchase_invoice(self)
+        if not self.is_return:
+           create_purchase_invoice(self)
 
 @frappe.whitelist()
 def si_on_cancel(self, method):
@@ -286,7 +288,6 @@ def create_purchase_invoice(self):
         pi.cost_center = self.cost_center.replace(old_abbr, new_abbr)
     else:
         pi.cost_center = frappe.db.get_value("Company",self.customer,"cost_center")
-
     for item in self.items:
         pi.append('items', {
             'item_code': item.item_code,
@@ -328,8 +329,8 @@ def create_purchase_invoice(self):
             'tax_amount': tax.tax_amount,
             'total': tax.total
         })
-
     pi.save()
+    
     self.db_set('purchase_invoice', pi.name)
     pi.submit()
 
@@ -337,9 +338,11 @@ def create_purchase_invoice(self):
     frappe.msgprint(_("Purchase Invoice <b><a href='{url}'>{name}</a></b> has been created successfully!".format(url=url, name=pi.name)), title="Purchase Invoice Created", indicator="green")
 
 def cancel_purchase_invoice(self):
+    self.db_set('purchase_invoice', '')
+    db.commit()
+
     pi = frappe.get_doc("Purchase Invoice", self.purchase_invoice)
     pi.cancel()
-    self.db_set('purchase_invoice','')
     db.commit()
 
     url = get_url_to_form("Purchase Invoice", pi.name)
@@ -678,36 +681,48 @@ def get_contact(user):
 def new_item_query(doctype, txt, searchfield, start, page_len, filters, as_dict=False):
     conditions = []
     return db.sql("""
-        select
-            tabItem.name, tabItem.item_other_names, tabItem.item_group_code,tabItem.item_group, if((bin.actual_qty>0),CONCAT_WS(':',bin.company,bin.actual_qty),0)
-        from
+            SELECT
+            tabItem.name, 
+            tabItem.item_other_names, 
+            tabItem.item_group_code,
+            tabItem.item_group, 
+            IF((bin.actual_qty>0), CONCAT_WS(':', bin.company, bin.actual_qty), 0),
+            tabItemPrice.price_list_rate
+        FROM
             tabItem
-
+        LEFT JOIN 
+            `tabItem Price` AS tabItemPrice ON (tabItem.name = tabItemPrice.item_code AND tabItemPrice.price_list = "Standard Selling")
         LEFT JOIN (
-          SELECT b.item_code,round(sum(b.actual_qty),2) as actual_qty, w.company
-          FROM `tabBin` as b
-          LEFT JOIN `tabWarehouse` as w ON w.name = warehouse 
-          GROUP BY b.item_code,w.company
-        ) as bin ON (tabItem.name = bin.item_code and tabItem.is_stock_item = 1) 			
-            
-        where 
+            SELECT 
+                b.item_code,
+                ROUND(SUM(b.actual_qty), 2) AS actual_qty, 
+                w.company
+            FROM 
+                `tabBin` AS b
+            LEFT JOIN 
+                `tabWarehouse` AS w ON w.name = b.warehouse 
+            GROUP BY 
+                b.item_code, w.company
+        ) AS bin ON (tabItem.name = bin.item_code AND tabItem.is_stock_item = 1)
+        WHERE 
             tabItem.docstatus < 2
-            and tabItem.has_variants=0
-            and tabItem.disabled=0
-            and (tabItem.`{key}` LIKE %(txt)s
-                or tabItem.item_name LIKE %(txt)s
-                or tabItem.item_group LIKE %(txt)s
-                or tabItem.item_other_names LIKE %(txt)s
-                or tabItem.item_group_code LIKE %(txt)s
-                or tabItem.barcode LIKE %(txt)s)
+            AND tabItem.has_variants = 0
+            AND tabItem.disabled = 0
+            AND (tabItem.`{key}` LIKE %(txt)s
+                OR tabItem.item_name LIKE %(txt)s
+                OR tabItem.item_group LIKE %(txt)s
+                OR tabItem.item_other_names LIKE %(txt)s
+                OR tabItem.item_group_code LIKE %(txt)s
+                OR tabItem.barcode LIKE %(txt)s)
             {fcond} {mcond}
-        order by
-            default_selection desc,
-            if(locate(%(_txt)s, tabItem.name), locate(%(_txt)s, tabItem.name), 99999),
-            if(locate(%(_txt)s, item_name), locate(%(_txt)s, item_name), 99999),
-            bin.actual_qty desc
-            
-        limit %(start)s, %(page_len)s """.format(
+        ORDER BY
+            default_selection DESC,
+            IF(LOCATE(%(_txt)s, tabItem.name), LOCATE(%(_txt)s, tabItem.name), 99999),
+            IF(LOCATE(%(_txt)s, tabItem.item_name), LOCATE(%(_txt)s, tabItem.item_name), 99999),
+            bin.actual_qty DESC,
+            tabItemPrice.price_list_rate ASC
+        LIMIT %(start)s, %(page_len)s
+ """.format(
             key=searchfield,
             fcond=get_filters_cond(doctype, filters, conditions).replace('%', '%%'),
             mcond=get_match_cond(doctype).replace('%', '%%')),
