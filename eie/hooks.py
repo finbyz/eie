@@ -55,7 +55,8 @@ doctype_js = {
 	"Purchase Order": "public/js/doctype_js/purchase_order.js",
 	"Purchase Receipt": "public/js/doctype_js/purchase_receipt.js",
 	"Payment Entry" : "public/js/doctype_js/payment_entry.js",
-    "Work Order":"public/js/doctype_js/work_order.js"
+    "Work Order":"public/js/doctype_js/work_order.js",
+	"Production Plan":"public/js/doctype_js/production_plan.js",
 }
 
 # Home Pages
@@ -163,16 +164,18 @@ doctype_js = {
 override_whitelisted_methods = {
 	"frappe.utils.print_format.download_pdf": "eie.print_format.download_pdf",
 	"erpnext.manufacturing.doctype.bom.bom.get_bom_diff": "eie.bom_override.get_bom_diff",
-    "erpnext.accounts.doctype.payment_entry.payment_entry.get_payment_entry":"eie.pe_override.get_payment_entry"
+    "erpnext.accounts.doctype.payment_entry.payment_entry.get_payment_entry":"eie.pe_override.get_payment_entry",
+    "erpnext.manufacturing.doctype.production_plan.production_plan.get_items_for_material_requests":"eie.eie.override_whitelisted.production_plan.get_items_for_material_requests",
+    "erpnext.manufacturing.doctype.production_plan.production_plan.get_bin_details":"eie.eie.override_whitelisted.production_plan.get_bin_details"
 }
 override_doctype_dashboards = {
 	"Material Request": "eie.eie.dashboard.material_request.get_data",
 }
 override_doctype_class = {
-    "Website Item": "eie.eie.doc_events.website_item.CustomWebsiteItem",
-    "Purchase Receipt": "eie.eie.override.purchase_receipt.PurchaseReceipt",
-    "Stock Entry": "eie.eie.override.stock_entry.StockEntry",
-    "Item":"eie.eie.override.item.Item",
+    # "Website Item": "eie.eie.doc_events.website_item.CustomWebsiteItem",
+    "Purchase Receipt": "eie.eie.override.doctype.purchase_receipt.PurchaseReceipt",
+    "Stock Entry": "eie.eie.override.doctype.stock_entry.StockEntry",
+    "Item":"eie.eie.override.doctype.item.Item",
 }
 doc_events = {
 	"Sales Invoice": {
@@ -291,13 +294,13 @@ scheduler_events = {
 }
 
 # e invoice override
-import erpnext
+# import erpnext
 
-from eie.e_invoice_override import update_invoice_taxes, get_invoice_value_details, make_einvoice,validate_document_name as eie_validate_document_name
-erpnext.regional.india.utils.validate_document_name = eie_validate_document_name
-erpnext.regional.india.e_invoice.utils.update_invoice_taxes = update_invoice_taxes
-erpnext.regional.india.e_invoice.utils.get_invoice_value_details = get_invoice_value_details
-erpnext.regional.india.e_invoice.utils.make_einvoice = make_einvoice
+# from eie.e_invoice_override import update_invoice_taxes, get_invoice_value_details, make_einvoice,validate_document_name as eie_validate_document_name
+# erpnext.regional.india.utils.validate_document_name = eie_validate_document_name
+# erpnext.regional.india.e_invoice.utils.update_invoice_taxes = update_invoice_taxes
+# erpnext.regional.india.e_invoice.utils.get_invoice_value_details = get_invoice_value_details
+# erpnext.regional.india.e_invoice.utils.make_einvoice = make_einvoice
 
 #import frappe
 
@@ -328,8 +331,8 @@ reorder_item.reorder_item = reorder_item_eie
 #v13 override
 from eie.v13_override import get_place_of_supply, get_pending_raw_materials
 
-from erpnext.regional.india import utils
-utils.get_place_of_supply = get_place_of_supply
+# from erpnext.regional.india import utils
+# utils.get_place_of_supply = get_place_of_supply
 
 from erpnext.stock.doctype.stock_entry.stock_entry import StockEntry
 StockEntry.get_pending_raw_materials = get_pending_raw_materials
@@ -347,9 +350,9 @@ from erpnext.selling.doctype.sales_order import sales_order
 from eie.eie.doc_events.sales_order import make_delivery_note
 sales_order.make_delivery_note = make_delivery_note
 
-from eie.eie.report.vehicle_expenses import execute as vehicle_expenses_execute
-from erpnext.hr.report.vehicle_expenses import vehicle_expenses 
-vehicle_expenses.execute = vehicle_expenses_execute
+# from eie.eie.report.vehicle_expenses import execute as vehicle_expenses_execute
+# from erpnext.hr.report.vehicle_expenses import vehicle_expenses 
+# vehicle_expenses.execute = vehicle_expenses_execute
 
 from erpnext.controllers.stock_controller import StockController
 from eie.eie.doc_events.stock_controller import validate_inspection

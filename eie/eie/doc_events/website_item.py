@@ -1,14 +1,14 @@
 import frappe
 from frappe.utils import cint, cstr, flt, random_string
 import json
-from erpnext.setup.doctype.item_group.item_group import (
-	get_parent_item_groups,
-	invalidate_cache_for,
-)
+# from erpnext.setup.doctype.item_group.item_group import (
+# 	get_parent_item_groups,
+# 	invalidate_cache_for,
+# )
 import itertools
 from frappe.website.doctype.website_slideshow.website_slideshow import get_slideshow
-from erpnext.e_commerce.doctype.item_review.item_review import get_item_reviews
-from erpnext.e_commerce.doctype.website_item.website_item import WebsiteItem, check_if_user_is_customer
+# from erpnext.e_commerce.doctype.item_review.item_review import get_item_reviews
+# from erpnext.e_commerce.doctype.website_item.website_item import WebsiteItem, check_if_user_is_customer
 
 class CustomWebsiteItem(WebsiteItem):
 	def get_context(self, context):

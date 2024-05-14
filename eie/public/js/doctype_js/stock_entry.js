@@ -1,5 +1,5 @@
 
-this.frm.fields_dict.sales_order.get_query = function(doc){
+cur_frm.fields_dict.sales_order.get_query = function(doc){
 	return {
 		"filters": {
 			'docstatus': 1,
