@@ -2248,7 +2248,7 @@ def get_items(self):
 
         # fetch the serial_no of the first stock entry for the second stock entry
         if self.work_order and self.purpose == "Manufacture":
-            self.set_serial_nos(self.work_order)
+            # self.set_serial_nos(self.work_order)
             work_order = frappe.get_doc('Work Order', self.work_order)
             add_additional_cost(self, work_order)
 
