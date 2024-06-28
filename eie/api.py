@@ -314,7 +314,7 @@ def create_purchase_invoice(self):
     pi.tc_name = 'Purchase Terms'
 
     for tax in self.taxes:
-        account_head = tax.account_head.replace(old_abbr, new_abbr)
+        account_head = "Input Tax " + tax.account_head.replace(old_abbr, new_abbr)
         if not db.exists("Account", account_head):
             frappe.msgprint(_("The Account Head <b>{0}</b> does not exists. Please create Account Head for company <b>{1}</b> and create Purchase Invoice manually.".format(_(account_head), _(self.customer))), title="Purchase Invoice could not be created", indicator='red')
             return
@@ -395,11 +395,11 @@ def create_sales_order(self):
             'cost_center': item.cost_center.replace(old_abbr, new_abbr)
         })
 
-    if self.taxes_and_charges:
+    if self.taxes_and_charges and frappe.db.exists("Sales Taxes and Charges Template", self.taxes_and_charges.replace(old_abbr, new_abbr)):
         so.taxes_and_charges = self.taxes_and_charges.replace(old_abbr, new_abbr)
 
     for tax in self.taxes:
-        account_head = tax.account_head.replace(old_abbr, new_abbr)
+        account_head = tax.account_head.replace(old_abbr, new_abbr).replace("Input Tax ", "")
         if not db.exists("Account", account_head):
             frappe.throw(_("The Account Head <b>{0}</b> does not exists. Please create Account Head for company <b>{1}</b> and create Purchase Order manually.".format(_(account_head), _(self.customer))), title="Purchase Order could not be created", indicator='red')
             return
@@ -501,7 +501,7 @@ def create_purchase_receipt(self):
     pr.shipping_rule = self.shipping_rule
 
     for tax in self.taxes:
-        account_head = tax.account_head.replace(old_abbr, new_abbr)
+        account_head = "Input Tax " + tax.account_head.replace(old_abbr, new_abbr)
         if not db.exists("Account", account_head):
             frappe.msgprint(_("The Account Head <b>{0}</b> does not exists. Please create Account Head for company <b>{1}</b> and create Purchase Receipt manually.".format(_(account_head), _(self.customer))), title="Purchase Receipt could not be created", indicator='red')
             return
@@ -518,13 +518,9 @@ def create_purchase_receipt(self):
         })
 
     pr.tc_name = 'Purchase Terms'
-    try:
-        pr.save()
-    except Exception as e:
-        frappe.throw(_(e))
-    else:
-        self.db_set('purchase_receipt', pr.name)
-        db.commit()
+    pr.save()
+    self.db_set('purchase_receipt', pr.name)
+    db.commit()
 
     url = get_url_to_form("Purchase Receipt", pr.name)
     frappe.msgprint(_("Purchase Receipt <b><a href='{url}'>{name}</a></b> has been created successfully! Please submit the Purchase Recipient.".format(url=url, name=pr.name)), title="Purchase Receipt Created", indicator="green")
@@ -1402,19 +1398,6 @@ def send_sales_invoice_mails():
                     </td>
                 </tr></tbody></table></div><br>
                 We request you to look into the matter and release the payment/s without Further delay. <br><br>
-                <span style="background-color: rgb(255, 255, 0);">We are registered with MSME vide The Registration No: UDYAM-GJ-01-0051237, 
-                As MSME Rule Customer make payment Within 45 Days only. </span><br><br>
-                Amended section, 43B(h) of the Income Tax Act 1961 has been clarified here in a simplified manner:<br><br>
-                If the supplier of any organization is registered under MSME Act and who falls under the Micro and Small Enterprise category, and whose payment is pending as on the balance sheet date i.e. 31.03.20XX for more than the time limit as specified under MSME Act as below: <br><br>
-                    <span style="background-color: rgb(255, 255, 0);">•	Maximum 45 days from the date of Invoice or the time period agreed upon by the parties in written agreement (Last date for payment as mentioned in Invoice), whichever is earlier.</span><br>
-                    •	Maximum 15 days, In the absence of any written agreement,<br><br>
-                
-                <span style="background-color: rgb(255, 255, 0);">Then the amount of such expense shall not be allowed as business expense for that financial year and the same will be allowed in the financial year in which actual payment has been made. </span><br><br>
-                
-                And as per GST Rule no 37 (1) A registered person, who has availed of input tax credit on any inward supply of goods or services or both, but fails to pay to the supplier thereof, the value of such supply along with the tax payable thereon,
-                within the time limit specified in the second proviso to sub-section (2) of section 16, shall furnish the details of such supply, the amount of value not paid and the amount of input tax credit availed of proportionate to such amount not paid
-                to the supplier in FORM GSTR-2 for the month immediately following the period of one hundred and eighty (180) days from the date of the issue of the invoice.<br><br>
-                
                 <span style="background-color: rgb(255, 255, 0);">If payment already made from your end, kindly excuse us for this mail with the details of payments made to enable us to reconcile and credit your account. In case of online payment, sometimes, it is difficult to reconcile the name of the Payer and credit the relevant account.<br><br>
                 If invoice is not due please reconcile the same and arrange to release on due date. </span><br><br>
 
@@ -1640,12 +1623,12 @@ def payment_receipt_alert(self, attachments, sender, recipients):
         <p> For any queries, Please get in touch with our contact available with you. </p> 
         <p>Thanks & Regards, <strong>
         <br/> {} <br/> </strong>
-        <p>Contact: 7966040646</p>
-        <p>Quation Department- 079-66211201 – info@eieinstruments.com</p> 
-        <p>Service Department- 079-66040629 – service.eiepl@gmail.com</p> 
-        <p>Dispatch Department – 079-66040612- Sonali.eiepl@gmail.com</p> 
-        <p>Logistic Department – 7600001423 – logistic@eieinstruments.com</p> 
-        <p>Biling Department – 079-66040685 –  billing@eieinstruments.com</p> 
+        <p>Contact: 07935208312 / 079-35208323</p>
+        <p>Quation Department - 079-66211204 - info@eieinstruments.com</p> 
+        <p>Service Department - +91-9909903582 / 079-35208330 - service@eieinstruments.com</p> 
+        <p>Dispatch Department - 079-35208360 - bhumika@eieinstruments.com</p> 
+        <p>Logistic Department - 7600001423 - logistic@eieinstruments.com</p> 
+        <p>Biling Department - 079-35208308 -  billing@eieinstruments.com</p> 
         <strong>{}</strong> </p>""".format(self.remarks.replace('\n', "<br>"), get_fullname(self.modified_by) or "", self.company)
 
     frappe.sendmail(recipients=recipients,

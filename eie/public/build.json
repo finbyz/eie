@@ -17,8 +17,5 @@
 	],
 	"js/sms_manager.js": [
 		"public/js/sms_manager.js"
-	],
-	"js/eie_transactions.min.js":[
-		"public/js/transaction.js"
 	]
 }

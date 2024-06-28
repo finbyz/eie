@@ -89,3 +89,12 @@ naming_series(frm) {
 };
 
 cur_frm.script_manager.make(erpnext.selling.QuotationController);
+
+frappe.ui.form.on('Quotation Optional Accessories', {
+	before_optional_accessories_remove: function (frm, cdt, cdn) {
+		let d = locals [cdt][cdn];
+		if (d.essential_accessory){
+			frappe.throw(`Item: ${d.accessory} not deleted as same is essential accessory`)
+		}
+	}
+});

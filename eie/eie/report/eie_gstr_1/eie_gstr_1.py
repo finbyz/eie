@@ -7,8 +7,8 @@ from frappe import _
 from frappe.utils import flt, formatdate, now_datetime, getdate
 from datetime import date
 from six import iteritems
-from erpnext.regional.doctype.gstr_3b_report.gstr_3b_report import get_period
-from erpnext.regional.india.utils import get_gst_accounts
+# from erpnext.regional.doctype.gstr_3b_report.gstr_3b_report import get_period
+from india_compliance.gst_india.utils import get_escaped_name, get_gst_accounts_by_type
 
 def execute(filters=None):
 	return Gstr1Report(filters).run()
@@ -42,7 +42,7 @@ class Gstr1Report(object):
 
 	def run(self):
 		self.get_columns()
-		self.gst_accounts = get_gst_accounts(self.filters.company)
+		self.gst_accounts = get_gst_accounts_by_type(self.filters.company, "Output")
 		self.get_invoice_data()
 
 		if self.invoices:

@@ -48,7 +48,7 @@ page_js = {"permission-manager" : "public/js/eie.min.js"}
 doctype_js = {
 	"Sales Order": "public/js/doctype_js/sales_order.js",
 	"Sales Invoice": "public/js/doctype_js/sales_invoice.js",
-	"Delivery Note": "public/js/doctype_js/delivery_note.js",
+	# "Delivery Note": "public/js/doctype_js/delivery_note.js",
 	"Stock Entry": "public/js/doctype_js/stock_entry.js",
 	"Quotation": "public/js/doctype_js/quotation.js",
 	"Purchase Invoice": "public/js/doctype_js/purchase_invoice.js",
@@ -146,7 +146,7 @@ doctype_js = {
 # ------------------------------
 #
 # override_whitelisted_methods = {
-# 	"frappe.desk.doctype.event.event.get_events": "eie.event.get_events"
+# 	# "frappe.desk.doctype.event.event.get_events": "eie.event.get_events"
 # }
 # override_whitelisted_methods = {
 #  	"erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice": "eie.api.make_sales_invoice",
@@ -162,11 +162,13 @@ doctype_js = {
 # 	#"frappe.email.inbox.create_email_flag_queue": "eie.inbox.create_email_flag_queue",
 # }
 override_whitelisted_methods = {
-	"frappe.utils.print_format.download_pdf": "eie.print_format.download_pdf",
+	# "frappe.utils.print_format.download_pdf": "eie.print_format.download_pdf",
 	"erpnext.manufacturing.doctype.bom.bom.get_bom_diff": "eie.bom_override.get_bom_diff",
     "erpnext.accounts.doctype.payment_entry.payment_entry.get_payment_entry":"eie.pe_override.get_payment_entry",
     "erpnext.manufacturing.doctype.production_plan.production_plan.get_items_for_material_requests":"eie.eie.override_whitelisted.production_plan.get_items_for_material_requests",
-    "erpnext.manufacturing.doctype.production_plan.production_plan.get_bin_details":"eie.eie.override_whitelisted.production_plan.get_bin_details"
+    "erpnext.manufacturing.doctype.production_plan.production_plan.get_bin_details":"eie.eie.override_whitelisted.production_plan.get_bin_details",
+    "erpnext.selling.doctype.sales_order.sales_order.make_delivery_note": "eie.eie.doc_events.sales_order.make_delivery_note",
+    "erpnext.accounts.doctype.sales_invoice.sales_invoice.make_delivery_note": "eie.eie.override_whitelisted.sales_invoice.make_delivery_note",
 }
 override_doctype_dashboards = {
 	"Material Request": "eie.eie.dashboard.material_request.get_data",
@@ -272,7 +274,11 @@ doc_events = {
 	},
     "Work Order":{
         "validate":"eie.api.check_bom_company"
-	}
+	},
+    "Expense Claim":{
+        "before_validate":"eie.eie.doc_events.expense_claim.before_validate"
+	},
+	
 	
 	# ("Sales Invoice", "Purchase Invoice", "Payment Request", "Payment Entry", "Journal Entry", "Material Request", "Purchase Order", "Work Order", "Production Plan", "Stock Entry", "Quotation", "Sales Order", "Delivery Note", "Purchase Receipt", "Packing Slip"): {
 	# 	"before_naming": "eie.api.docs_before_naming",
@@ -342,13 +348,13 @@ from erpnext.accounts import utils
 from eie.api import check_if_stock_and_account_balance_synced
 utils.check_if_stock_and_account_balance_synced = check_if_stock_and_account_balance_synced
 
-from erpnext.accounts.doctype.sales_invoice import sales_invoice
-from eie.eie.doc_events.sales_invoice import make_delivery_note
-sales_invoice.make_delivery_note = make_delivery_note
+# from erpnext.accounts.doctype.sales_invoice import sales_invoice
+# from eie.eie.doc_events.sales_invoice import make_delivery_note
+# sales_invoice.make_delivery_note = make_delivery_note
 
-from erpnext.selling.doctype.sales_order import sales_order
-from eie.eie.doc_events.sales_order import make_delivery_note
-sales_order.make_delivery_note = make_delivery_note
+# from erpnext.selling.doctype.sales_order import sales_order
+# from eie.eie.doc_events.sales_order import make_delivery_note
+# sales_order.make_delivery_note = make_delivery_note
 
 # from eie.eie.report.vehicle_expenses import execute as vehicle_expenses_execute
 # from erpnext.hr.report.vehicle_expenses import vehicle_expenses 
