@@ -1401,7 +1401,7 @@ def send_sales_invoice_mails():
                 <span style="background-color: rgb(255, 255, 0);">If payment already made from your end, kindly excuse us for this mail with the details of payments made to enable us to reconcile and credit your account. In case of online payment, sometimes, it is difficult to reconcile the name of the Payer and credit the relevant account.<br><br>
                 If invoice is not due please reconcile the same and arrange to release on due date. </span><br><br>
 
-                If you need any clarifications for any of above invoice/s, please reach out to our Accounts Receivable Team by sending email to cd@eieinstruments.com or call Mr. Mahesh Parmar (079-35208303) or Mr. Hardik Suthar (079-35208313).<br><br>
+                If you need any clarifications for any of above invoice/s, please reach out to our Accounts Receivable Team by sending email to cd@eieinstruments.com or call Mr. Hardik Suthar (079-35208313).<br><br>
 
                 Thanking you in anticipation.<br><br>For, EIE INSTRUMENTS PVT. LTD.<br>( Accountant )
                 """.format(actual_amt, outstanding_amt)
@@ -1905,7 +1905,7 @@ def send_emd_reminder():
             <center><strong>TOTAL </strong> : {}</center><br><br>
 
             We request for your immediate actions in this regards. <br><br>
-            If you need any clarifications for any of above invoice/s, please reach out to our Accounts Receivable Team by sending email to tender@eieinstruments.com Or Call Ms. Sadhna Patel (079-66211215) or call Mr. Mahesh Parmar (079-66040638) . <br><br>
+            If you need any clarifications for any of above invoice/s, please reach out to our Accounts Receivable Team by sending email to tender@eieinstruments.com Or Call Ms. Sadhna Patel (079-66211215). <br><br>
             If refund already made from your end, kindly excuse us for this mail with the details of payments made to enable us to reconcile and credit your account. In case of online payment, sometimes, it is difficult to reconcile the name of the Payer and credit the relevant account. <br><br><br>
             Thanking you in anticipation. <br><br><br>
             <strong>For, {}</strong><br>
@@ -2053,7 +2053,7 @@ def send_sd_reminder():
             <center><strong>TOTAL </strong> : {}</center><br><br>
 
             We request for your immediate actions in this regards. <br><br>
-            If you need any clarifications for any of above invoice/s, please reach out to our Accounts Receivable Team by sending email to tender@eieinstruments.com Or Call Ms. Sadhna Patel (079-66211215) or call Mr. Mahesh Parmar (079-66040638).<br><br>
+            If you need any clarifications for any of above invoice/s, please reach out to our Accounts Receivable Team by sending email to tender@eieinstruments.com Or Call Ms. Sadhna Patel (079-66211215).<br><br>
             If refund already made from your end, kindly excuse us for this mail with the details of payments made to enable us to reconcile and credit your account. In case of online payment, sometimes, it is difficult to reconcile the name of the Payer and credit the relevant account. <br><br><br>
             Thanking you in anticipation. <br><br><br>
             <strong>For, {}</strong><br>
