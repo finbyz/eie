@@ -2,6 +2,8 @@
 
 from __future__ import unicode_literals
 import json
+
+from erpnext.selling.doctype.sales_order.sales_order import get_requested_item_qty
 import frappe, erpnext
 import re
 import time
@@ -814,23 +816,42 @@ def make_material_request(source_name, target_doc=None):
                 projected_qty = tot_avail_qty and flt(tot_avail_qty[0][0]) or 0
                 row.qty = abs(projected_qty)
 
-    def postprocess_manufacture(source, doc):
+    def postprocess_manufacture(source, doc, item_code=None):
         doc.material_request_type = "Manufacture"
         doc.schedule_date = source.delivery_date
         if str(doc.schedule_date) < str(doc.transaction_date):
             doc.schedule_date = doc.transaction_date
 
-        if hasattr(doc,'items'):
+        if hasattr(doc, 'items'):
             for row in doc.items:
-                tot_avail_qty = db.sql("""select sum(projected_qty) from `tabBin` as bin
-                    where item_code = %s and exists (select company from `tabWarehouse` where name = bin.warehouse and company = %s)
-                    group by item_code having sum(projected_qty) < 0""", (row.item_code, doc.company))
-                
-                projected_qty = tot_avail_qty and flt(tot_avail_qty[0][0]) or 0
-                row.qty = abs(projected_qty)
+                if row.item_code == item_code:
+                    tot_avail_qty = frappe.db.sql("""
+                        select sum(projected_qty) 
+                        from `tabBin` as bin 
+                        where item_code = %s 
+                        and exists (select company from `tabWarehouse` where name = bin.warehouse and company = %s)
+                        group by item_code 
+                        having sum(projected_qty) < 0
+                    """, (row.item_code, doc.company))
+
+                    projected_qty = tot_avail_qty and flt(tot_avail_qty[0][0]) or 0
+                    row.qty = abs(projected_qty)
+    def check_item_exists(doc,item_list=[]):
+        if item_list:
+            if doc.item_code in item_list:
+                return False
+        return True
 
     def update_item(source, target, source_parent):
         target.project = source_parent.project
+        args = target.as_dict().copy()
+        args.update({
+            "price_list": frappe.db.get_single_value("Buying Settings", "buying_price_list"),
+            "currency": source_parent.get("currency"),
+            "conversion_rate": source_parent.get("conversion_rate"),
+        })
+        target.rate = flt(get_price_list_rate(args=args, item_doc=frappe.get_cached_doc("Item", target.item_code)).get("price_list_rate"))
+        target.amount = target.qty * target.rate
 
     def check_items_purchase(doc):
         parent_company = frappe.db.get_value(doc.parenttype, doc.parent, "company")
@@ -845,48 +866,27 @@ def make_material_request(source_name, target_doc=None):
             group by item_code having sum(projected_qty) < 0""", (doc.item_code, parent_company))
 
         projected_qty = tot_avail_qty and flt(tot_avail_qty[0][0]) or 0
-
-        if projected_qty < 0 and frappe.db.get_value("Item", doc.item_code,"default_material_request_type") != "Manufacture":
-            return True
-            
-        return False
+        return projected_qty < 0 and frappe.db.get_value("Item", doc.item_code, "default_material_request_type") != "Manufacture"
 
     def check_items_manufacture(doc):
         parent_company = frappe.db.get_value(doc.parenttype, doc.parent, "company")
         if db.exists('Product Bundle', {"new_item_code":doc.item_code}):
             return False
-        
-        # tot_avail_qty = db.sql("select projected_qty from `tabBin` \
-        #     where item_code = %s and warehouse = %s", (doc.item_code, doc.warehouse))
-        tot_avail_qty = db.sql("""select sum(projected_qty) from `tabBin` as bin
-            where item_code = %s and exists (select company from `tabWarehouse` where name = bin.warehouse and company = %s)
-            group by item_code having sum(projected_qty) < 0""", (doc.item_code, parent_company))
-
+        tot_avail_qty = frappe.db.sql("""
+            select sum(projected_qty) 
+            from `tabBin` as bin 
+            where item_code = %s 
+            and exists (select company from `tabWarehouse` where name = bin.warehouse and company = %s)
+            group by item_code 
+            having sum(projected_qty) < 0
+        """, (doc.item_code, parent_company))
         projected_qty = tot_avail_qty and flt(tot_avail_qty[0][0]) or 0
-
-        if projected_qty < 0 and frappe.db.get_value("Item", doc.item_code,"default_material_request_type") == "Manufacture":
-            return True
-            
-        return False
-
-    # def check_packed_item_condition_purchase(doc):
-    # 	if doc.projected_qty < 0 and frappe.db.get_value("Item", doc.item_code,"default_material_request_type") != "Manufacture":
-    # 		return True
-    # 	else:
-    # 		return False
-
-    # def check_packed_item_condition_manufacture(doc):
-    # 	if doc.projected_qty < 0 and frappe.db.get_value("Item", doc.item_code,"default_material_request_type") == "Manufacture":
-    # 		return True
-    # 	else:
-    # 		return False
-    def check_item_exists(doc,item_list=[]):
-        if item_list:
-            if doc.item_code in item_list:
-                return False
-        return True
+        return projected_qty < 0 and frappe.db.get_value("Item", doc.item_code, "default_material_request_type") == "Manufacture"
 
     source_doc = frappe.get_doc("Sales Order", source_name)
+    requests_created = []
+
+    # Handle Purchase items in a single request
     item_list=[each_item.item_code for each_item in source_doc.items]
     purchase_request_type_doc = get_mapped_doc("Sales Order", source_name, {
         "Sales Order": {
@@ -918,52 +918,46 @@ def make_material_request(source_name, target_doc=None):
         }
     }, target_doc, postprocess_purchase)
 
-    manufacture_request_type_doc = get_mapped_doc("Sales Order", source_name, {
-        "Sales Order": {
-            "doctype": "Material Request",
-            "validation": {
-                "docstatus": ["=", 1]
-            }
-        },
-        "Sales Order Item": {
-            "doctype": "Material Request Item",
-            "field_map": {
-                "name": "sales_order_item",
-                "parent": "sales_order",
-                "stock_uom": "uom"
-            },
-            "postprocess": update_item,
-            "condition": check_items_manufacture
-        },
-        "Packed Item": {
-            "doctype": "Material Request Item",
-            "field_map": {
-                "parent": "sales_order",
-                "stock_uom": "uom"
-            },
-            "postprocess": update_item,
-            # "condition": lambda doc: doc.projected_qty < 0
-            "condition": lambda doc:check_items_manufacture(doc) and check_item_exists(doc,item_list)
-        }
-    }, target_doc, postprocess_manufacture)
-
-    requests_created = []
     if purchase_request_type_doc.get('items'):
-        purchase_request_type_doc.save(ignore_permissions= True)
+        purchase_request_type_doc.save(ignore_permissions=True)
         requests_created.append(purchase_request_type_doc.name)
 
-    if manufacture_request_type_doc.get('items'):
-        manufacture_request_type_doc.save(ignore_permissions= True)
-        requests_created.append(manufacture_request_type_doc.name)
+    # Handle Manufacture items individually
+    for item in source_doc.items:
+        if check_items_manufacture(item):
+            manufacture_request_type_doc = get_mapped_doc("Sales Order", source_name, {
+                "Sales Order": {
+                    "doctype": "Material Request",
+                    "validation": {"docstatus": ["=", 1]}
+                },
+                "Sales Order Item": {
+                    "doctype": "Material Request Item",
+                    "field_map": {
+                        "name": "sales_order_item",
+                        "parent": "sales_order",
+                        "stock_uom": "uom",
+                        "description": "description"
+                    },
+                    "postprocess": update_item,
+                    "condition": lambda doc: doc.item_code == item.item_code
+                }
+            }, target_doc, lambda source, doc: postprocess_manufacture(source, doc, item_code=item.item_code))
+
+            # Save and append the manufacture material request
+            if manufacture_request_type_doc.get('items'):
+                manufacture_request_type_doc.save(ignore_permissions=True)
+                requests_created.append(manufacture_request_type_doc.name)
+
+    # Generate form links for the created Material Requests
 
     form_links = list(map(lambda d: get_link_to_form('Material Request', d), requests_created))
-
     if requests_created:
-        msg = "Following Material Request Created {}".format(', '.join(form_links))
+        msg = "Following Material Requests Created: {}".format(', '.join(form_links))
     else:
-        msg = "Material Request Not Created Because of Any Item Doesn't have Negative Projected Qty"
-    
+        msg = "No Material Request Created. All Items have Positive Projected Qty."
+
     frappe.msgprint(msg)
+
 
 @frappe.whitelist()
 def si_before_save(self, method):
@@ -1341,7 +1335,7 @@ def emd_sd_mail():
 @frappe.whitelist()
 def sales_invoice_mails():
     if getdate().weekday() == 6 and (getdate().isocalendar()[1] + 1) % 2 == 1:
-        enqueue(send_sales_invoice_mails, queue='long', timeout=5000, job_name='Payment Reminder Mails')
+        enqueue(send_sales_invoice_mails, queue='long', timeout=50000, job_name='Payment Reminder Mails')
         return "Payment Reminder Mails Send"
 
 @frappe.whitelist()
@@ -1442,7 +1436,7 @@ def send_sales_invoice_mails():
 
         # customer_si = [d for d in data if d.customer == customer]
         customer_si = get_customer_si(customer)
-
+        
         file = frappe.get_doc("File", "7b75a60f5d")
         path = file.get_full_path()
         with open(path, "rb") as f:
@@ -1493,6 +1487,7 @@ def send_sales_invoice_mails():
         except:
             frappe.log_error("Mail Sending Issue", frappe.get_traceback())
             continue
+
     show_progress('Success', "All Mails Sent", str(cnt))
     frappe.db.set_value("Cities", "CITY0001", "total", cnt)
 
@@ -2757,7 +2752,7 @@ def get_company_wise_rate(self,arg):
         purchase_rate_query = frappe.db.sql("""
             select incoming_rate
             from `tabStock Ledger Entry`
-            where item_code = '{}' and incoming_rate > 0 and voucher_type in ('Purchase Receipt','Purchase Invoice') and company = '{}'
+            where item_code = '{}' and incoming_rate > 0 and voucher_type in ('Purchase Receipt','Purchase Invoice') and company = '{}' and is_cancelled != 1
             order by timestamp(posting_date, posting_time) desc
             limit 1
         """.format(arg['item_code'],arg.get('company') or self.company))

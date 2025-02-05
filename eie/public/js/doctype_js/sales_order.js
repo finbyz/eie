@@ -481,3 +481,186 @@ frappe.ui.form.on("Sales Order Item", {
 		frappe.model.set_value(cdt, cdn, 'rate', flt(rate, precision("rate", d)));
 	}
 });
+
+
+// frappe.ui.form.on('Sales Order', {
+//     refresh: function (frm) {
+//         highlight_child_table_rows(frm);
+// 		highlight_child_table_packed_items_rows(frm); 
+//     },
+//     onload_post_render: function (frm) {
+//         frm.fields_dict['items'].grid.wrapper.on('click', '.grid-row', function () {
+//             highlight_child_table_rows(frm);
+// 			highlight_child_table_packed_items_rows(frm);
+//         });
+
+//         frm.fields_dict['items'].grid.wrapper.on('change', function () {
+//             highlight_child_table_rows(frm);
+// 			highlight_child_table_packed_items_rows(frm);
+//         });
+
+//         highlight_child_table_rows(frm); // Initial highlighting
+// 		highlight_child_table_packed_items_rows(frm);
+//     }
+
+	
+// });
+
+// function highlight_child_table_rows(frm) {  
+// 	if (!frm.doc.__islocal  && frm.doc.status === 'To Bill'){
+// 		frappe.call({
+// 			method: 'eie.eie.doc_events.sales_order.highlight_sales_order_items',
+// 			args: {
+// 				sales_order_name: frm.doc.name
+// 			},
+// 			callback: function (response) {
+// 				if (response.message) {
+// 					frm.fields_dict['items'].grid.grid_rows.forEach(row => {
+// 						if (response.message.includes(row.doc.idx)) {
+// 							$(row.row).css('background-color', '#ffcc00'); // Highlight matching rows
+// 						} else {
+// 							$(row.row).css('background-color', ''); // Remove highlight for non-matching rows
+// 						}
+// 					});
+// 				}
+// 			}
+// 		});
+// 	}
+// }
+
+
+// function highlight_child_table_packed_items_rows(frm) {  
+// 	if (!frm.doc.__islocal  && frm.doc.status === 'To Bill'	){
+//     frappe.call({
+//         method: 'eie.eie.doc_events.sales_order.highlight_sales_order_packed_items',
+//         args: {
+//             sales_order_name: frm.doc.name
+//         },
+//         callback: function (response) {
+//             if (response.message) {
+//                 frm.fields_dict['packed_items'].grid.grid_rows.forEach(row => {
+//                     if (response.message.includes(row.doc.idx)) {
+//                         $(row.row).css('background-color', '#ffcc00'); 
+//                     } else {
+//                         $(row.row).css('background-color', '')
+//                     }
+//                 });
+//             }
+//         }
+//     });}
+// }
+
+frappe.ui.form.on('Sales Order', {
+    // before_submit: function (frm) {
+    //     highlight_child_table_rows(frm);
+    //     highlight_child_table_packed_items_rows(frm); 
+    // },
+    // onload_post_render: function (frm) {
+    //     frm.fields_dict['items'].grid.wrapper.on('click', '.grid-row', function () {
+    //         highlight_child_table_rows(frm);
+    //         highlight_child_table_packed_items_rows(frm);
+    //     });
+
+    //     frm.fields_dict['items'].grid.wrapper.on('change', function () {
+    //         highlight_child_table_rows(frm);
+    //         highlight_child_table_packed_items_rows(frm);
+    //     });
+
+    //     highlight_child_table_rows(frm); // Initial highlighting
+    //     highlight_child_table_packed_items_rows(frm);
+    // }
+	refresh: function (frm) {
+        if (frm.doc.docstatus === 1) { // Only trigger for submitted Sales Orders
+            highlight_child_table_rows(frm);
+            highlight_child_table_packed_items_rows(frm);
+        }
+    }
+});
+
+function is_not_draft_cancelled_or_closed(frm) {
+    return !frm.doc.__islocal && !['Draft', 'Cancelled', 'Closed'].includes(frm.doc.status);
+}
+
+// function highlight_child_table_rows(frm) {
+//     if (is_not_draft_cancelled_or_closed(frm)) {
+//         frappe.call({
+//             method: 'eie.eie.doc_events.sales_order.highlight_sales_order_items',
+//             args: {
+//                 sales_order_name: frm.doc.name
+//             },
+//             callback: function (response) {
+//                 if (response.message) {
+//                     frm.fields_dict['items'].grid.grid_rows.forEach(row => {
+//                         if (response.message.includes(row.doc.idx)) {
+//                             $(row.row).css('background-color', '#ffcc00'); // Highlight matching rows
+//                         } else {
+//                             $(row.row).css('background-color', ''); // Remove highlight for non-matching rows
+//                         }
+//                     });
+//                 }
+//             }
+//         });
+//     }
+// }
+
+// function highlight_child_table_packed_items_rows(frm) {
+//     if (is_not_draft_cancelled_or_closed(frm)) {
+//         frappe.call({
+//             method: 'eie.eie.doc_events.sales_order.highlight_sales_order_packed_items',
+//             args: {
+//                 sales_order_name: frm.doc.name
+//             },
+//             callback: function (response) {
+//                 if (response.message) {
+//                     frm.fields_dict['packed_items'].grid.grid_rows.forEach(row => {
+//                         if (response.message.includes(row.doc.idx)) {
+//                             $(row.row).css('background-color', '#ffcc00'); // Highlight matching rows
+//                         } else {
+//                             $(row.row).css('background-color', ''); // Remove highlight for non-matching rows
+//                         }
+//                     });
+//                 }
+//             }
+//         });
+//     }
+// }
+
+function highlight_child_table_rows(frm) {
+    frappe.call({
+        method: 'eie.eie.doc_events.sales_order.highlight_sales_order_items',
+        args: {
+            sales_order_name: frm.doc.name
+        },
+        callback: function (response) {
+            if (response.message) {
+                frm.fields_dict['items'].grid.grid_rows.forEach(row => {
+                    if (response.message.includes(row.doc.idx)) {
+                        $(row.row).css('background-color', '#ffcc00'); // Highlight matching rows
+                    } else {
+                        $(row.row).css('background-color', ''); // Reset non-matching rows
+                    }
+                });
+            }
+        }
+    });
+}
+
+function highlight_child_table_packed_items_rows(frm) {
+    frappe.call({
+        method: 'eie.eie.doc_events.sales_order.highlight_sales_order_packed_items',
+        args: {
+            sales_order_name: frm.doc.name
+        },
+        callback: function (response) {
+            if (response.message) {
+                frm.fields_dict['packed_items'].grid.grid_rows.forEach(row => {
+                    if (response.message.includes(row.doc.idx)) {
+                        $(row.row).css('background-color', '#ffcc00'); // Highlight matching rows
+                    } else {
+                        $(row.row).css('background-color', ''); // Reset non-matching rows
+                    }
+                });
+            }
+        }
+    });
+}

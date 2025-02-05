@@ -9,6 +9,53 @@ cur_frm.fields_dict.sales_order.get_query = function(doc){
 	};
 }
 frappe.ui.form.on("Stock Entry", {
+    before_submit: function (frm) {
+        // First function to update packed_qty from Sales Order Items
+        frappe.call({
+            method: 'eie.eie.doc_events.sales_order.update_packed_qty_from_stock_entry',
+            args: {
+                stock_entry_name: frm.doc.name
+            },
+            callback: function (response) {
+                if (response.message.status === "success") {
+                    frappe.msgprint(response.message.message);
+                } else {
+                    frappe.msgprint(response.message.message);
+                }
+            }
+        });
+
+        // Second function to update packed_qty from Packed Items
+        frappe.call({
+            method: 'eie.eie.doc_events.sales_order.update_packed_qty_from_stock_entry_packed_items',
+            args: {
+                stock_entry_name: frm.doc.name
+            },
+            callback: function (response) {
+                if (response.message.status === "success") {
+                    frappe.msgprint(response.message.message);
+                } else {
+                    frappe.msgprint(response.message.message);
+                }
+            }
+        });
+    },
+    // refresh: function (frm) {
+    //     // Call the Python method after saving the Stock Entry
+    //     frappe.call({
+    //         method: 'eie.eie.doc_events.sales_order.update_packed_qty_from_stock_entry_packed_items',
+    //         args: {
+    //             stock_entry_name: frm.doc.name
+    //         },
+    //         callback: function (response) {
+    //             if (response.message.status === "success") {
+    //                 frappe.msgprint(response.message.message);
+    //             } else {
+    //                 frappe.msgprint(__('An error occurred while updating Packed Qty.'));
+    //             }
+    //         }
+    //     });
+    // },
     get_items_from_so:function(frm){
         frappe.call({
 			method: "eie.eie.doc_events.stock_entry.insert_se_items",

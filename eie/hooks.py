@@ -57,6 +57,7 @@ doctype_js = {
 	"Payment Entry" : "public/js/doctype_js/payment_entry.js",
     "Work Order":"public/js/doctype_js/work_order.js",
 	"Production Plan":"public/js/doctype_js/production_plan.js",
+    "Issue":"public/js/doctype_js/issue.js",
 }
 
 # Home Pages
@@ -169,6 +170,8 @@ override_whitelisted_methods = {
     "erpnext.manufacturing.doctype.production_plan.production_plan.get_bin_details":"eie.eie.override_whitelisted.production_plan.get_bin_details",
     "erpnext.selling.doctype.sales_order.sales_order.make_delivery_note": "eie.eie.doc_events.sales_order.make_delivery_note",
     "erpnext.accounts.doctype.sales_invoice.sales_invoice.make_delivery_note": "eie.eie.override_whitelisted.sales_invoice.make_delivery_note",
+    "erpnext.selling.doctype.quotation.quotation.make_sales_order": "eie.eie.override_whitelisted.sales_order._make_sales_order",
+    
 }
 override_doctype_dashboards = {
 	"Material Request": "eie.eie.dashboard.material_request.get_data",
@@ -250,8 +253,9 @@ doc_events = {
 		"before_save": "eie.api.IP_before_save",
 	},
 	"Quotation": {
-		"validate": "eie.api.qt_validate",
+		"validate": ["eie.api.qt_validate", "eie.eie.doc_events.quotation.validate"],
 		"before_save": "eie.api.qt_before_save",
+        
 	},
 	"Customer": {
 		"before_save": "eie.api.customer_before_save",

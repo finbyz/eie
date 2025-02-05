@@ -165,7 +165,7 @@ def get_item_warehouse_projected_qty(items_to_consider):
 
 
 def create_material_request(material_requests):
-	"""Create indent on reaching reorder level"""
+	"""Create material request on reaching reorder level"""
 	mr_list = []
 	exceptions_list = []
 
@@ -185,62 +185,108 @@ def create_material_request(material_requests):
 				if not items:
 					continue
 
-				mr = frappe.new_doc("Material Request")
-				mr.update(
-					{
+				# If request_type is "Manufacture", generate single material request per item
+				if request_type == "Manufacture":
+					for d in items:
+						d = frappe._dict(d)
+						item = frappe.get_doc("Item", d.item_code)
+						uom = item.stock_uom
+						conversion_factor = 1.0
+
+						mr = frappe.new_doc("Material Request")
+						mr.update({
+							"company": company,
+							"transaction_date": nowdate(),
+							"material_request_type": request_type,
+						})
+
+
+						must_be_whole_number = frappe.db.get_value("UOM", uom, "must_be_whole_number", cache=True)
+						qty = d.reorder_qty / conversion_factor
+						if must_be_whole_number:
+							qty = ceil(qty)
+
+						mr.append(
+							"items",
+							{
+								"doctype": "Material Request Item",
+								"item_code": d.item_code,
+								"schedule_date": add_days(nowdate(), cint(item.lead_time_days)),
+								"qty": qty,
+								"uom": uom,
+								"stock_uom": item.stock_uom,
+								"warehouse": d.warehouse,
+								"item_name": item.item_name,
+								"description": item.description,
+								"item_group": item.item_group,
+								"brand": item.brand,
+							},
+						)
+
+						mr.schedule_date = add_days(nowdate(), cint(item.lead_time_days))
+						mr.flags.ignore_mandatory = True
+						mr.insert()
+						mr.submit()
+						mr_list.append(mr)
+
+				else:
+					# For other request types (e.g., Purchase, Transfer, etc.), continue as before
+					mr = frappe.new_doc("Material Request")
+					mr.update({
 						"company": company,
 						"transaction_date": nowdate(),
 						"material_request_type": "Material Transfer" if request_type == "Transfer" else request_type,
-					}
-				)
+					})
 
-				for d in items:
-					d = frappe._dict(d)
-					item = frappe.get_doc("Item", d.item_code)
-					uom = item.stock_uom
-					conversion_factor = 1.0
+					for d in items:
+						d = frappe._dict(d)
+						item = frappe.get_doc("Item", d.item_code)
+						uom = item.stock_uom
+						conversion_factor = 1.0
 
-					if request_type == "Purchase":
-						uom = item.purchase_uom or item.stock_uom
-						if uom != item.stock_uom:
-							conversion_factor = (
-								frappe.db.get_value(
-									"UOM Conversion Detail", {"parent": item.name, "uom": uom}, "conversion_factor"
+						if request_type == "Purchase":
+							uom = item.purchase_uom or item.stock_uom
+							if uom != item.stock_uom:
+								conversion_factor = (
+									frappe.db.get_value(
+										"UOM Conversion Detail", {"parent": item.name, "uom": uom}, "conversion_factor"
+									)
+									or 1.0
 								)
-								or 1.0
-							)
 
-					must_be_whole_number = frappe.db.get_value("UOM", uom, "must_be_whole_number", cache=True)
-					qty = d.reorder_qty / conversion_factor
-					if must_be_whole_number:
-						qty = ceil(qty)
+						must_be_whole_number = frappe.db.get_value("UOM", uom, "must_be_whole_number", cache=True)
+						qty = d.reorder_qty / conversion_factor
+						if must_be_whole_number:
+							qty = ceil(qty)
 
-					mr.append(
-						"items",
-						{
-							"doctype": "Material Request Item",
-							"item_code": d.item_code,
-							"schedule_date": add_days(nowdate(), cint(item.lead_time_days)),
-							"qty": qty,
-							"uom": uom,
-							"stock_uom": item.stock_uom,
-							"warehouse": d.warehouse,
-							"item_name": item.item_name,
-							"description": item.description,
-							"item_group": item.item_group,
-							"brand": item.brand,
-						},
-					)
+						mr.append(
+							"items",
+							{
+								"doctype": "Material Request Item",
+								"item_code": d.item_code,
+								"schedule_date": add_days(nowdate(), cint(item.lead_time_days)),
+								"qty": qty,
+								"uom": uom,
+								"stock_uom": item.stock_uom,
+								"warehouse": d.warehouse,
+								"item_name": item.item_name,
+								"description": item.description,
+								"item_group": item.item_group,
+								"brand": item.brand,
+							},
+						)
 
-				schedule_dates = [d.schedule_date for d in mr.items]
-				mr.schedule_date = max(schedule_dates or [nowdate()])
-				mr.flags.ignore_mandatory = True
-				mr.insert()
-				mr.submit()
-				mr_list.append(mr)
+					schedule_dates = [d.schedule_date for d in mr.items]
+					mr.schedule_date = max(schedule_dates or [nowdate()])
+					mr.flags.ignore_mandatory = True
+					mr.insert()
+					mr.submit()
+					mr_list.append(mr)
 
-			except Exception:
+			except Exception as e:
 				_log_exception()
+
+	return mr_list
 
 	if mr_list:
 		if getattr(frappe.local, "reorder_email_notify", None) is None:

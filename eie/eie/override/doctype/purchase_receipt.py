@@ -3,10 +3,15 @@ import frappe
 from pyqrcode import create as qrcreate
 import io
 import base64
+import re
+
+def sanitize_qrcode_data(qrcode):
+    return re.sub(r'[^\x00-\x7F]+', '-', qrcode)
 
 def get_qr_code(qrcode):
+    sanitized_qrcode = sanitize_qrcode_data(qrcode)  # Sanitize the input
     qr_image = io.BytesIO()
-    url = qrcreate(qrcode, error="L")
+    url = qrcreate(sanitized_qrcode, error="L")
     url.png(qr_image, scale=4, quiet_zone=1)
     return base64.b64encode(qr_image.getvalue()).decode("ascii")
 
