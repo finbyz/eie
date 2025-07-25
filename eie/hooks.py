@@ -29,7 +29,8 @@ app_include_js = [
 	# "assets/js/comment_desk.min.js",
 	# "assets/js/editor.min.js",
 	# "assets/js/timeline.min.js",
-	"/assets/js/eie_transactions.min.js"
+	"/assets/js/eie_transactions.min.js",
+	"/assets/eie/js/eie_send_email_override.js",
 ]
 # include js, css files in header of web template
 # web_include_css = "/assets/eie/css/eie.css"
@@ -48,7 +49,7 @@ page_js = {"permission-manager" : "public/js/eie.min.js"}
 doctype_js = {
 	"Sales Order": "public/js/doctype_js/sales_order.js",
 	"Sales Invoice": "public/js/doctype_js/sales_invoice.js",
-	# "Delivery Note": "public/js/doctype_js/delivery_note.js",
+	"Delivery Note": "public/js/doctype_js/delivery_note.js",
 	"Stock Entry": "public/js/doctype_js/stock_entry.js",
 	"Quotation": "public/js/doctype_js/quotation.js",
 	"Purchase Invoice": "public/js/doctype_js/purchase_invoice.js",
@@ -58,6 +59,7 @@ doctype_js = {
     "Work Order":"public/js/doctype_js/work_order.js",
 	"Production Plan":"public/js/doctype_js/production_plan.js",
     "Issue":"public/js/doctype_js/issue.js",
+    "Product Bundle":"public/js/doctype_js/product_bundle.js",
 }
 
 # Home Pages
@@ -282,6 +284,9 @@ doc_events = {
     "Expense Claim":{
         "before_validate":"eie.eie.doc_events.expense_claim.before_validate"
 	},
+    "Communication":{
+		"before_insert": "eie.eie.doc_events.communication.before_insert",
+	},
 	
 	
 	# ("Sales Invoice", "Purchase Invoice", "Payment Request", "Payment Entry", "Journal Entry", "Material Request", "Purchase Order", "Work Order", "Production Plan", "Stock Entry", "Quotation", "Sales Order", "Delivery Note", "Purchase Receipt", "Packing Slip"): {
@@ -299,6 +304,7 @@ scheduler_events = {
 			"eie.api.sales_invoice_mails",
 			"eie.api.calibration_mails_daily",
 			"eie.api.emd_sd_mail",
+			"eie.api.auto_close_expired_pos"
 		],
 	}
 }

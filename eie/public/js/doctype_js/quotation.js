@@ -100,9 +100,146 @@ frappe.ui.form.on('Quotation Optional Accessories', {
 });
 
 frappe.ui.form.on('Quotation', {
+
+    validate: function(frm) {
+        let outdated_items = [];
+        
+        frm.doc.items.forEach(function(item) {
+            if (!item.item_code) return;
+            frappe.call({
+                method: "frappe.client.get_list",
+                args: {
+                    doctype: "Item Price",
+                    filters: {
+                        price_list: frm.doc.selling_price_list,
+                        item_code: item.item_code,
+                        selling: 1
+                    },
+                    fields: ["price_list_rate", "modified","name"],
+                    limit_page_length: 1,
+                    order_by: "modified desc"
+                },
+                async: false,
+                callback: function(r) {
+                    if (r.message && r.message.length > 0) {
+                        let item_price = r.message[0];
+                        let last_modified = new Date(r.message[0].modified);
+                        let twelve_months_ago = frappe.datetime.add_months(frappe.datetime.now_date(), -12);
+                       
+                        
+                        if (last_modified < new Date(twelve_months_ago)) {
+                            outdated_items.push({
+                                item_code: item.item_code,
+                                item_price_name: item_price.name,
+                                idx: item.idx   
+                            });
+                        }
+                    }
+                }
+            });
+        });
+
+        if (outdated_items.length > 0) {
+            let items_linked = outdated_items.map(item => {
+                let item_price_link = `/app/item-price/${item.item_price_name}`;
+                return `Row ${item.idx}:<a href="${item_price_link}" target="_blank" style="text-decoration: underline;">${item.item_code}</a><br>`;
+            }).join(", ");
+    
+            let message = `
+                The following items have not had their prices updated in the last 12 months: 
+                <br><b>${items_linked}</b><br><br>
+            `;
+    
+            // frappe.msgprint({
+            //     title: __('Old Prices Detected'),
+            //     message: message,
+            //     indicator: 'orange'
+            // });
+            let dialog = new frappe.ui.Dialog({
+                title: __('Old Prices Detected'),
+                indicator: 'orange',
+                size: 'small',
+                primary_action_label: __('Yes'),
+                primary_action() {
+                    dialog.hide();  // Close when "Yes" clicked
+                },
+                fields: [
+                    {
+                        fieldtype: 'HTML',
+                        fieldname: 'info',
+                        options: `
+                            <div>
+                                The following items have not had their prices updated in the last 12 months:<br><br>
+                                <b>${items_linked}</b><br><br>
+                                Please click <b>Yes</b> to close.
+                            </div>
+                        `
+                    }
+                ]
+            });
+        
+            dialog.show();
+        }
+    },
+    on_submit: function(frm) {
+        let outdated_items = [];
+        
+        frm.doc.items.forEach(function(item) {
+            if (!item.item_code) return;
+            frappe.call({
+                method: "frappe.client.get_list",
+                args: {
+                    doctype: "Item Price",
+                    filters: {
+                        price_list: frm.doc.selling_price_list,
+                        item_code: item.item_code,
+                        selling: 1
+                    },
+                    fields: ["price_list_rate", "modified","name"],
+                    limit_page_length: 1,
+                    order_by: "modified desc"
+                },
+                async: false,
+                callback: function(r) {
+                    if (r.message && r.message.length > 0) {
+                        let item_price = r.message[0];
+                        let last_modified = new Date(r.message[0].modified);
+                        let twelve_months_ago = frappe.datetime.add_months(frappe.datetime.now_date(), -12);
+                       
+                        
+                        if (last_modified < new Date(twelve_months_ago)) {
+                            outdated_items.push({
+                                item_code: item.item_code,
+                                item_price_name: item_price.name   
+                            });
+                        }
+                    }
+                }
+            });
+        });
+
+        if (outdated_items.length > 0) {
+            let items_linked = outdated_items.map(item => {
+                let item_price_link = `/app/item-price/${item.item_price_name}`;  
+                return `<a href="${item_price_link}" target="_blank" style="text-decoration: underline;">${item.item_code}</a>`;
+            }).join(", ");
+    
+            let message = `
+                The following items have not had their prices updated in the last 12 months: 
+                <br><b>${items_linked}</b><br><br>
+            `;
+    
+            frappe.msgprint({
+                title: __('Old Prices Detected'),
+                message: message,
+                indicator: 'orange'
+            });
+        }
+    },
+
     territory: function(frm) {
         if (frm.doc.party_name) {
-// Fetch the territory manager based on the territory
+            // Fetch the territory manager based on the territory
             frappe.call({
                 method: "frappe.client.get_value",
                 args: {
@@ -117,7 +254,7 @@ frappe.ui.form.on('Quotation', {
                         email_func(r.message.territory_manager, frm);
 
                     } else {
-// If no territory manager, fetch the sales person based on industry type
+                        // If no territory manager, fetch the sales person based on industry type
                         frappe.call({
                             method: "frappe.client.get_value",
                             args: {
@@ -156,7 +293,7 @@ frappe.ui.form.on('Quotation', {
 
 
  function email_func(manager, frm) {
-    // Fetch the email of the territory manager
+                        // Fetch the email of the territory manager
                         frappe.call({
                             method: "frappe.client.get_value",
                             args: {
@@ -174,3 +311,23 @@ frappe.ui.form.on('Quotation', {
                         });
     
  };
+
+
+ frappe.ui.form.on('Quotation', {
+    get_email_recipients: function(frm, field) {
+        if (field === 'cc') {
+            const raw = frm.doc.other_emails || "";
+            const emails = raw
+                .split(",")
+                .map(e => e.trim())
+                .filter(e => validate_email(e));
+            return emails;
+        }
+    }
+});
+
+// Helper
+function validate_email(email) {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+}

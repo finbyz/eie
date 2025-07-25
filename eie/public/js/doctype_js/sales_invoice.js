@@ -37,3 +37,22 @@ frappe.ui.form.on("Sales Invoice", {
         }
     }
 });
+
+frappe.ui.form.on('Sales Invoice', {
+    get_email_recipients: function(frm, field) {
+        if (field === 'cc') {
+            const raw = frm.doc.other_emails || "";
+            const emails = raw
+                .split(",")
+                .map(e => e.trim())
+                .filter(e => validate_email(e));
+            return emails;
+        }
+    }
+});
+
+// Helper
+function validate_email(email) {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+}

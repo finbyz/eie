@@ -1367,7 +1367,7 @@ def send_sales_invoice_mails():
 
         rounded_total = fmt_money(rounded_total, 2, 'INR')
         outstanding_amount = fmt_money(outstanding_amount, 2, 'INR')
-
+    
         return """<tr>
                 <td width="16%" valign="top"> {0} </td>
                 <td width="12%" valign="top"> {1} </td>
@@ -1624,6 +1624,7 @@ def payment_receipt_alert(self, attachments, sender, recipients):
         <p>Dispatch Department - 079-35208360 - bhumika@eieinstruments.com</p> 
         <p>Logistic Department - 7600001423 - logistic@eieinstruments.com</p> 
         <p>Biling Department - 079-35208308 -  billing@eieinstruments.com</p> 
+        <p>Account Department - 079-35208323 - vasant@eieinstruments.com</p>
         <strong>{}</strong> </p>""".format(self.remarks.replace('\n', "<br>"), get_fullname(self.modified_by) or "", self.company)
 
     frappe.sendmail(recipients=recipients,
@@ -1819,12 +1820,135 @@ def send_calibration_mail(days):
         except:
             frappe.publish_realtime(event="cities_progress", message={'status': "FAIL", 'customer': '', 'invoice': ''}, user=frappe.session.user)
 
-def si_validate(self,method):
+def si_validate(self, method):
+    if self.customer:
+        # Get customer group from customer master
+        customer_group = frappe.db.get_value("Customer", self.customer, "customer_group")
+
+        def get_invoice_outstanding(invoice):
+            # Get all PLEs for this invoice
+            ple = frappe.qb.DocType("Payment Ledger Entry")
+            entries = (
+                frappe.qb.from_(ple)
+                .select(
+                    ple.voucher_type,
+                    ple.voucher_no,
+                    ple.against_voucher_type,
+                    ple.against_voucher_no,
+                    ple.amount
+                )
+                .where(
+                    (ple.party == self.customer)
+                    & (ple.party_type == "Customer")
+                    & (
+                        (ple.voucher_no == invoice) | (ple.against_voucher_no == invoice)
+                    )
+                    & (ple.delinked == 0)
+                )
+                .run(as_dict=True)
+            )
+
+            invoiced = paid = credit_note = 0.0
+            for e in entries:
+                # Invoiced: Sales Invoice, voucher_no == invoice
+                if e["voucher_type"] == "Sales Invoice" and e["voucher_no"] == invoice:
+                    invoiced += e["amount"]
+                # Paid: Payment Entry/Journal Entry, against_voucher_no == invoice
+                elif e["against_voucher_no"] == invoice and e["amount"] < 0:
+                    paid -= e["amount"]  # amount is negative for payments
+                # Credit Note: Credit Note, against_voucher_no == invoice
+                elif e["voucher_type"] == "Credit Note" and e["against_voucher_no"] == invoice:
+                    credit_note -= e["amount"]  # amount is negative for credit notes
+
+            return invoiced - paid - credit_note
+
+        # Get all sales invoices for this customer
+        invoices = frappe.get_all(
+            "Sales Invoice",
+            filters={"customer": self.customer, "docstatus": 1},
+            pluck="name"
+        )
+
+        self.customer_outstanding = sum(get_invoice_outstanding(inv) for inv in invoices)
+        frappe.throw(str(self.customer_outstanding))
+        # For customer group
+        if customer_group:
+            group_customers = frappe.get_all(
+                "Customer", filters={"customer_group": customer_group}, pluck="name"
+            )
+            group_invoices = frappe.get_all(
+                "Sales Invoice",
+                filters={"customer": ["in", group_customers], "docstatus": 1},
+                pluck="name"
+            )
+            self.customer_group_outstanding = sum(get_invoice_outstanding(inv) for inv in group_invoices)
     check_item_on_validate(self)
     hsn_validation(self)
     calculate_combine(self)
 
 def so_validate(self,method):
+    frappe.throw("test")
+    if self.customer:
+        # Get customer group from customer master
+        customer_group = frappe.db.get_value("Customer", self.customer, "customer_group")
+
+        def get_invoice_outstanding(invoice):
+            # Get all PLEs for this invoice
+            ple = frappe.qb.DocType("Payment Ledger Entry")
+            entries = (
+                frappe.qb.from_(ple)
+                .select(
+                    ple.voucher_type,
+                    ple.voucher_no,
+                    ple.against_voucher_type,
+                    ple.against_voucher_no,
+                    ple.amount
+                )
+                .where(
+                    (ple.party == self.customer)
+                    & (ple.party_type == "Customer")
+                    & (
+                        (ple.voucher_no == invoice) | (ple.against_voucher_no == invoice)
+                    )
+                    & (ple.delinked == 0)
+                )
+                .run(as_dict=True)
+            )
+
+            invoiced = paid = credit_note = 0.0
+            for e in entries:
+                # Invoiced: Sales Invoice, voucher_no == invoice
+                if e["voucher_type"] == "Sales Invoice" and e["voucher_no"] == invoice:
+                    invoiced += e["amount"]
+                # Paid: Payment Entry/Journal Entry, against_voucher_no == invoice
+                elif e["against_voucher_no"] == invoice and e["amount"] < 0:
+                    paid -= e["amount"]  # amount is negative for payments
+                # Credit Note: Credit Note, against_voucher_no == invoice
+                elif e["voucher_type"] == "Credit Note" and e["against_voucher_no"] == invoice:
+                    credit_note -= e["amount"]  # amount is negative for credit notes
+
+            return invoiced - paid - credit_note
+
+        # Get all sales invoices for this customer
+        invoices = frappe.get_all(
+            "Sales Invoice",
+            filters={"customer": self.customer, "docstatus": 1},
+            pluck="name"
+        )
+
+        self.customer_outstanding = sum(get_invoice_outstanding(inv) for inv in invoices)
+        frappe.throw(str(self.customer_outstanding))
+        # For customer group
+        if customer_group:
+            group_customers = frappe.get_all(
+                "Customer", filters={"customer_group": customer_group}, pluck="name"
+            )
+            group_invoices = frappe.get_all(
+                "Sales Invoice",
+                filters={"customer": ["in", group_customers], "docstatus": 1},
+                pluck="name"
+            )
+            self.customer_group_outstanding = sum(get_invoice_outstanding(inv) for inv in group_invoices)
     check_item_on_validate(self)
     set_default_warehouse(self)
 
@@ -2969,3 +3093,44 @@ def check_bom_company(self , method):
     company = frappe.db.get_value("BOM" , self.bom_no , 'company')
     if self.company != company:
         frappe.throw("BOM #<b>{}</b> Is Not From Company {}".format(self.bom_no , self.company))
+
+def auto_close_expired_pos():
+    expired_pos = frappe.get_all("Purchase Order", 
+        filters={
+            "docstatus": 1,  # Submitted
+            "status": ["not in", ["Closed", "Completed"]],
+			"expiry_date":["is", "set"],
+            "expiry_date": ["<", nowdate()],
+            
+        },
+        fields=["name"]
+    )
+	
+    for po in expired_pos:
+        try:
+            doc = frappe.get_doc("Purchase Order", po.name)
+            doc.db_set("status", "Closed")
+            frappe.db.commit()
+            frappe.logger().info(f"Auto-closed PO: {po.name}")
+        except Exception as e:
+            frappe.log_error(frappe.get_traceback(), f"Failed to auto-close PO {po.name}")
+
+
+
+@frappe.whitelist()
+def update_product_bundle_prices(docname):
+    doc = frappe.get_doc("Product Bundle", docname)
+    total = 0
+    for item in doc.items:
+        price = frappe.db.get_value("Item Price", {
+            "item_code": item.item_code,
+            "price_list": "Standard Buying"
+        }, "price_list_rate") * item.qty
+        if price is not None:
+            item.price = price 
+            total += price
+    doc.total_price = total 
+    formatted_datetime = now_datetime().strftime('%d/%m/%Y %H:%M:%S')
+    doc.last_update_price = formatted_datetime 
+    doc.save()
+    return {"status": "success"}

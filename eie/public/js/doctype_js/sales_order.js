@@ -87,14 +87,14 @@ cur_frm.set_query("shipping_address_name", function () {
 // 	})
 // }
 
-cur_frm.cscript.make_material_request = function (frm) {
-	frappe.call({
-		method: "eie.api.make_material_request",
-		args: {
-			"source_name": cur_frm.doc.name,
-		},
-	})
-}
+// cur_frm.cscript.make_material_request = function (frm) {
+// 	frappe.call({
+// 		method: "eie.api.make_material_request",
+// 		args: {
+// 			"source_name": cur_frm.doc.name,
+// 		},
+// 	})
+// }
 
 // Contact Query Filter
 cur_frm.set_query("contact_person", function () {
@@ -551,31 +551,42 @@ frappe.ui.form.on("Sales Order Item", {
 // }
 
 frappe.ui.form.on('Sales Order', {
-    // before_submit: function (frm) {
-    //     highlight_child_table_rows(frm);
-    //     highlight_child_table_packed_items_rows(frm); 
-    // },
-    // onload_post_render: function (frm) {
-    //     frm.fields_dict['items'].grid.wrapper.on('click', '.grid-row', function () {
-    //         highlight_child_table_rows(frm);
-    //         highlight_child_table_packed_items_rows(frm);
-    //     });
-
-    //     frm.fields_dict['items'].grid.wrapper.on('change', function () {
-    //         highlight_child_table_rows(frm);
-    //         highlight_child_table_packed_items_rows(frm);
-    //     });
-
-    //     highlight_child_table_rows(frm); // Initial highlighting
-    //     highlight_child_table_packed_items_rows(frm);
-    // }
-	refresh: function (frm) {
-        if (frm.doc.docstatus === 1) { // Only trigger for submitted Sales Orders
+    refresh: function (frm) {
+        if (frm.doc.docstatus === 1) {
             highlight_child_table_rows(frm);
             highlight_child_table_packed_items_rows(frm);
         }
+    },
+
+    onload_post_render: function (frm) {
+        if (frm.doc.docstatus !== 1) return;
+
+        highlight_child_table_rows(frm);
+        highlight_child_table_packed_items_rows(frm);
+
+        if (frm._highlight_hooks_attached) return;
+        frm._highlight_hooks_attached = true;
+
+        const wrapper = frm.fields_dict['items']?.grid?.wrapper;
+        if (!wrapper) return;
+
+      
+        $(wrapper).on('click', '.grid-pagination', function () {
+            setTimeout(() => {
+                highlight_child_table_rows(frm);
+                highlight_child_table_packed_items_rows(frm);
+            }, 200);  // wait for grid to render
+        });
+
+       
+        $(wrapper).on('scroll', frappe.utils.debounce(() => {
+            console.log("Scrolled");
+            highlight_child_table_rows(frm);
+            highlight_child_table_packed_items_rows(frm);
+        }, 150));
     }
 });
+
 
 function is_not_draft_cancelled_or_closed(frm) {
     return !frm.doc.__islocal && !['Draft', 'Cancelled', 'Closed'].includes(frm.doc.status);
@@ -663,4 +674,24 @@ function highlight_child_table_packed_items_rows(frm) {
             }
         }
     });
+}
+
+
+frappe.ui.form.on('Sales Order', {
+    get_email_recipients: function(frm, field) {
+        if (field === 'cc') {
+            const raw = frm.doc.other_emails || "";
+            const emails = raw
+                .split(",")
+                .map(e => e.trim())
+                .filter(e => validate_email(e));
+            return emails;
+        }
+    }
+});
+
+// Helper
+function validate_email(email) {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
 }

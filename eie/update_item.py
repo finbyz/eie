@@ -16,10 +16,6 @@ def update_child_qty_rate(parent_doctype, trans_items, parent_doctype_name, chil
 			frappe.throw(_("You do not have permissions to {} items in a Sales Order.").format(action), title=_("Insufficient Permissions"))
 
 	def get_new_child_item(item_row):
-		# if parent_doctype == "Sales Order":
-		# 	return set_sales_order_defaults(parent_doctype, parent_doctype_name, child_docname, item_row)
-		# if parent_doctype == "Purchase Order":
-		# 	return set_purchase_order_defaults(parent_doctype, parent_doctype_name, child_docname, item_row)
 		child_doctype = "Sales Order Item" if parent_doctype == "Sales Order" else "Purchase Order Item" 
 		return set_order_defaults(parent_doctype, parent_doctype_name, child_doctype, child_docname, item_row)
 
