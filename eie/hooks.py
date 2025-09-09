@@ -31,7 +31,9 @@ app_include_js = [
 	# "assets/js/timeline.min.js",
 	"/assets/js/eie_transactions.min.js",
 	"/assets/eie/js/eie_send_email_override.js",
+	"/assets/eie/js/doctype_js/journal_entry.js",
 ]
+
 # include js, css files in header of web template
 # web_include_css = "/assets/eie/css/eie.css"
 # web_include_js = "/assets/eie/js/eie.js"
@@ -203,7 +205,7 @@ doc_events = {
 		"before_save": "eie.api.po_before_save",
 		"on_submit": "eie.api.po_on_submit",
 		"on_cancel": "eie.api.po_on_cancel",
-		"before_update_after_submit": "eie.api.po_before_update_after_submit",
+		# "before_update_after_submit": "eie.api.po_before_update_after_submit",
 		"validate":["eie.eie.doc_events.purchase_order.validate","eie.eie.doc_events.purchase_order.validate_items"],
 	},
 	"Purchase Receipt":{
@@ -257,6 +259,7 @@ doc_events = {
 	"Quotation": {
 		"validate": ["eie.api.qt_validate", "eie.eie.doc_events.quotation.validate"],
 		"before_save": "eie.api.qt_before_save",
+        "before_validate": "eie.eie.doc_events.quotation.check_disabled_item"
         
 	},
 	"Customer": {
@@ -274,6 +277,7 @@ doc_events = {
 	},
 	"Journal Entry":{
 		"validate":"eie.api.je_validate",
+		"on_cancel": "eie.api.jv_on_cancel"
 	},
 	"Contact":{
 		"validate":"eie.api.contact_validate"
@@ -374,3 +378,9 @@ from erpnext.controllers.stock_controller import StockController
 from eie.eie.doc_events.stock_controller import validate_inspection
 StockController.validate_inspection = validate_inspection
 
+fixtures = [
+    {
+        "dt": "Custom Field",
+        "filters": {"module": ["in", ["EIE"]]},
+    }
+]

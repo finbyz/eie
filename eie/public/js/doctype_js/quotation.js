@@ -4,7 +4,8 @@ if (cur_frm.doc.company == "EIE Instruments Pvt. Ltd.") {
             query: "eie.api.new_item_query",
             filters: {
                 'dont_allow_sales_in_eie': 0,
-                'is_sales_item': 1
+                'is_sales_item': 1,
+                 'disabled':  0
             }
         }
     }
@@ -13,7 +14,8 @@ if (cur_frm.doc.company == "EIE Instruments Pvt. Ltd.") {
         return {
             query: "eie.api.new_item_query",
             filters: {
-                'is_sales_item': 1
+                'is_sales_item': 1,
+                'disabled':  0
             }
         }
     }
@@ -27,7 +29,9 @@ refresh(doc, dt, dn) {
                 query: "eie.api.new_item_query",
                 filters: {
                     'dont_allow_sales_in_eie': 0,
-                    'is_sales_item': 1
+                    'is_sales_item': 1,
+                    'disabled':  0
+                  
                 }
             }
         }
@@ -36,7 +40,9 @@ refresh(doc, dt, dn) {
             return {
                 query: "eie.api.new_item_query",
                 filters: {
-                    'is_sales_item': 1
+                    'is_sales_item': 1,
+                    'disabled':  0
+                   
                 }
             }
         }
@@ -49,7 +55,8 @@ onload(doc, dt, dn) {
                 query: "eie.api.new_item_query",
                 filters: {
                     'dont_allow_sales_in_eie': 0,
-                    'is_sales_item': 1
+                    'is_sales_item': 1,
+               
                 }
             }
         }
@@ -58,7 +65,9 @@ onload(doc, dt, dn) {
             return {
                 query: "eie.api.new_item_query",
                 filters: {
-                    'is_sales_item': 1
+                    'is_sales_item': 1,
+                
+
                 }
             }
         }
@@ -71,7 +80,8 @@ naming_series(frm) {
                 query: "eie.api.new_item_query",
                 filters: {
                     'dont_allow_sales_in_eie': 0,
-                    'is_sales_item': 1
+                    'is_sales_item': 1,
+                
                 }
             }
         }
@@ -80,7 +90,8 @@ naming_series(frm) {
             return {
                 query: "eie.api.new_item_query",
                 filters: {
-                    'is_sales_item': 1
+                    'is_sales_item': 1,
+                 
                 }
             }
         }

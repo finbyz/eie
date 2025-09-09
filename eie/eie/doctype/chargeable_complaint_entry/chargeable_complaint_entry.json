@@ -1,0 +1,211 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2025-08-29 15:51:59.315289",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "register_date",
+  "report_no",
+  "actual_date",
+  "nature_of_complaint",
+  "action_taken",
+  "customer",
+  "customer_name",
+  "sales_invoices",
+  "get_from_sales_invoices",
+  "customer_address",
+  "address_display",
+  "contact_person",
+  "contact_number",
+  "contact_email",
+  "section_break_ocrk",
+  "responsible_person",
+  "section_break_raos",
+  "items",
+  "remarks",
+  "naming_series",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "default": "Now",
+   "fieldname": "register_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Register Date"
+  },
+  {
+   "fieldname": "report_no",
+   "fieldtype": "Data",
+   "label": "Report No"
+  },
+  {
+   "fieldname": "actual_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Actual Date"
+  },
+  {
+   "fieldname": "nature_of_complaint",
+   "fieldtype": "Select",
+   "label": "Nature of Complaint",
+   "options": "\nCalibration Due\nMotor not working\nAMC Visit Required\nCross Head Loacked\nMachine not working\nRearing Problem\nSoftware Issue\nLoadcell Damage\nCalibration Due and AMC Visit\nShafting Damage\nVsit required for Maintenance\nTemperature Problem\nWater Heater Short and SSR Short\nThermostat Damage\nGear Damage\nHeating Problem\nDisplay not working condition",
+   "sort_options": 1
+  },
+  {
+   "fieldname": "action_taken",
+   "fieldtype": "Data",
+   "label": "Action Taken"
+  },
+  {
+   "fieldname": "sales_invoices",
+   "fieldtype": "Table",
+   "label": "Sales Invoices",
+   "options": "CCE Sales Invoice"
+  },
+  {
+   "fieldname": "get_from_sales_invoices",
+   "fieldtype": "Button",
+   "label": "Get from Sales Invoices"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "customer_address",
+   "fieldtype": "Link",
+   "label": "Customer Address",
+   "options": "Address"
+  },
+  {
+   "fieldname": "address_display",
+   "fieldtype": "Small Text",
+   "label": "Address Display",
+   "read_only": 1
+  },
+  {
+   "fieldname": "contact_person",
+   "fieldtype": "Link",
+   "label": "Contact Person",
+   "options": "Contact"
+  },
+  {
+   "fetch_from": "contact_person.mobile_no",
+   "fieldname": "contact_number",
+   "fieldtype": "Data",
+   "label": "Contact Number",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "contact_person.email_id",
+   "fieldname": "contact_email",
+   "fieldtype": "Data",
+   "label": "Contact Email",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_ocrk",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "responsible_person",
+   "fieldtype": "Table",
+   "label": "Responsible Person",
+   "options": "Service Engineer Table"
+  },
+  {
+   "fieldname": "section_break_raos",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "CCE Item"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "default": "CCE/.YYYY./.####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "CCE/.YYYY./.####"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Chargeable Complaint Entry",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-09-06 10:46:11.695818",
+ "modified_by": "it@eieinstruments.com",
+ "module": "EIE",
+ "name": "Chargeable Complaint Entry",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "it@eieinstruments.com",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "select": 1,
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales User",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "customer"
+}

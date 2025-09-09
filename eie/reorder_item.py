@@ -205,6 +205,7 @@ def create_material_request(material_requests):
 						qty = d.reorder_qty / conversion_factor
 						if must_be_whole_number:
 							qty = ceil(qty)
+						cost_center = frappe.db.get_value("Company", company, "cost_center")
 
 						mr.append(
 							"items",
@@ -220,6 +221,7 @@ def create_material_request(material_requests):
 								"description": item.description,
 								"item_group": item.item_group,
 								"brand": item.brand,
+								"cost_center": cost_center
 							},
 						)
 
@@ -258,6 +260,7 @@ def create_material_request(material_requests):
 						qty = d.reorder_qty / conversion_factor
 						if must_be_whole_number:
 							qty = ceil(qty)
+						cost_center = frappe.db.get_value("Company", company, "cost_center")
 
 						mr.append(
 							"items",
@@ -273,6 +276,7 @@ def create_material_request(material_requests):
 								"description": item.description,
 								"item_group": item.item_group,
 								"brand": item.brand,
+								"cost_center":cost_center
 							},
 						)
 

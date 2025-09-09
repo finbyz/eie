@@ -123,14 +123,27 @@ class EMD(Document):
 			self.db_set('return_journal_entry' , jv.name)
 			jv.submit()
 
-	def on_cancel(self):
-		se = frappe.get_doc("Journal Entry",self.journal_entry)
-		if self.get("return_journal_entry"):
-			se1 = frappe.get_doc("Journal Entry",self.return_journal_entry)
-			se1.cancel()
-			self.db_set('return_journal_entry','')
+	# def on_cancel(self):
+	# 	se = frappe.get_doc("Journal Entry",self.journal_entry)
+	# 	if self.get("return_journal_entry"):
+	# 		se1 = frappe.get_doc("Journal Entry",self.return_journal_entry)
+	# 		se1.cancel()
+	# 		self.db_set('return_journal_entry','')
 
-		se.cancel()
-		self.db_set('journal_entry','')
+	# 	se.cancel()
+	# 	self.db_set('journal_entry','')
+	def on_cancel(self):
+		if self.get("return_journal_entry"):
+			se1 = frappe.get_doc("Journal Entry", self.return_journal_entry)
+			if se1.docstatus == 1:  
+				se1.cancel()
+			self.db_set('return_journal_entry', '')
+
+		if self.get("journal_entry"):
+			se = frappe.get_doc("Journal Entry", self.journal_entry)
+			if se.docstatus == 1: 
+				se.cancel()
+			self.db_set('journal_entry', '')
+
 		
 

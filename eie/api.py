@@ -1054,10 +1054,10 @@ def po_before_save(self, method):
     tax_breakup_data(self)
     sales_order_ref(self)
 
-def po_before_update_after_submit(self,method):
-    for row in self.items:
-        if row.rate:
-            row.original_rate = row.rate
+# def po_before_update_after_submit(self,method):
+#     for row in self.items:
+#         if row.rate:
+#             row.original_rate = row.rate
 
 def mapping_sales_order(self):
     data = frappe.db.get_value("Delivery Note Item" , {'parent': self.delivery_note}, 'against_sales_order')
@@ -2636,6 +2636,15 @@ def je_validate(self, method):
             cost_center = frappe.get_doc("Cost Center", row.cost_center)
             if cost_center.disabled:
                 frappe.throw(f"Row {row.idx}: Cost Center {cost_center.name} is Disabled.")
+
+
+def jv_on_cancel(self,method):
+    # Check if JV is linked with any active EMD
+    emd = frappe.db.exists("EMD", {"journal_entry": self.name, "docstatus": ["!=", 2]})
+    emd1 = frappe.db.exists("EMD", {"return_journal_entry": self.name, "docstatus": ["!=", 2]})
+
+    if emd or emd1:
+        frappe.throw("EMD is linked with this Journal Entry. Please cancel the EMD first before cancelling the Journal Entry.")
 
 def set_default_warehouse(self):
     for row in self.items:
