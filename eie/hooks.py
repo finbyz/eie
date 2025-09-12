@@ -185,6 +185,7 @@ override_doctype_class = {
     "Purchase Receipt": "eie.eie.override.doctype.purchase_receipt.PurchaseReceipt",
     "Stock Entry": "eie.eie.override.doctype.stock_entry.StockEntry",
     "Item":"eie.eie.override.doctype.item.Item",
+    "BOM":"eie.eie.override.doctype.bom.BOM",
 }
 doc_events = {
 	"Sales Invoice": {
